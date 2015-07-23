@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"io"
 	"os"
@@ -76,9 +77,18 @@ func (b *boltBucket) rebuild() error {
 	return nil
 }
 
-func (b *boltBucket) get(k string) (rs io.ReadSeeker, err error) {
+func (b *boltBucket) get(k string) (io.ReadSeeker, error) {
+	v, err := b.getBytes(k)
+	if err != nil {
+		return nil, err
+	}
+	rs := bytes.NewReader(v)
+	return rs, nil
+}
+
+func (b *boltBucket) getBytes(k string) ([]byte, error) {
 	var v []byte
-	err = b.db.View(func(tx *bolt.Tx) error {
+	err := b.db.View(func(tx *bolt.Tx) error {
 		v = tx.Bucket(b.name).Get([]byte(k))
 		return nil
 	})
@@ -88,9 +98,7 @@ func (b *boltBucket) get(k string) (rs io.ReadSeeker, err error) {
 	if v == nil {
 		return nil, errors.New("Value for Key is nil.")
 	}
-
-	rs = bytes.NewReader(v)
-	return rs, nil
+	return v, nil
 }
 
 func (b *boltBucket) set(k string, r io.Reader) {
@@ -99,14 +107,18 @@ func (b *boltBucket) set(k string, r io.Reader) {
 	b.setBytes(k, bb.Bytes())
 }
 
-func (b *boltBucket) setBytes(k string, bs []byte) {
-	_ = b.db.Update(func(tx *bolt.Tx) error {
+func (b *boltBucket) setBytes(k string, bs []byte) error {
+	err := b.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(b.name)
 		if err := b.Put([]byte(k), bs); err != nil {
 			return err
 		}
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (b *boltBucket) find(k string) error {
@@ -117,6 +129,43 @@ func (b *boltBucket) find(k string) error {
 	})
 	if v == nil {
 		return errors.New("Value for Key is nil.")
+	}
+	return nil
+}
+
+type bolter interface {
+	getID() string
+	get() error
+	set() error
+}
+
+type bolterItem struct {
+	DS *boltBucket `json:"-"`
+	ID string      `json:"-"`
+}
+
+func (bi *bolterItem) getID() string {
+	return bi.ID
+}
+
+func (bi *bolterItem) get() error {
+	v, err := bi.DS.getBytes(bi.getID())
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(v, bi); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (bi *bolterItem) set() error {
+	v, err := json.Marshal(bi)
+	if err != nil {
+		return err
+	}
+	if err = bi.DS.setBytes(bi.getID(), v); err != nil {
+		return err
 	}
 	return nil
 }

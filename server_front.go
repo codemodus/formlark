@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
-	"strconv"
-	"time"
 
 	"golang.org/x/net/context"
 )
@@ -18,7 +16,14 @@ func (n *node) postHandler(ctx context.Context, w http.ResponseWriter, r *http.R
 			store submitted form for later sending (encrypt)
 			get email and send form
 	*/
-	n.su.ds.dcbAsts.setBytes("test", []byte(strconv.FormatInt(time.Now().Unix(), 10)))
+	u := n.newUser()
+	u.ID = "test"
+	u.PublicID = u.ID
+	u.Email = "test@test.com"
+	u.Confirm = &dtConfirm{}
+	if err := u.set(); err != nil {
+		fmt.Println(err)
+	}
 	rdr, err := n.su.ds.dcbAsts.get("test")
 	if err != nil {
 		n.su.logs.Err.Println(err)
