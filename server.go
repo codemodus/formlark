@@ -49,7 +49,7 @@ func (n *node) setupMux() *mixmux.TreeMux {
 	c := chain.New(n.reco, n.initReq, n.log, chain.Convert(n.Node.Wedge))
 	m := mixmux.NewTreeMux()
 
-	m.Get(
+	m.Post(
 		path.Join("/"+n.su.conf.FormPathPrefix+"/*x"),
 		c.EndFn(n.postHandler),
 	)

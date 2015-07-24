@@ -95,9 +95,6 @@ func (b *boltBucket) getBytes(k string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if v == nil {
-		return nil, errors.New("Value for Key is nil.")
-	}
 	return v, nil
 }
 
@@ -134,22 +131,29 @@ func (b *boltBucket) find(k string) error {
 }
 
 type bolter interface {
-	getID() string
+	getID() (string, error)
 	get() error
 	set() error
 }
 
-type bolterItem struct {
-	DS *boltBucket `json:"-"`
+type boltItem struct {
+	DS *dataStores `json:"-"`
 	ID string      `json:"-"`
 }
 
-func (bi *bolterItem) getID() string {
-	return bi.ID
+func (bi *boltItem) getID() (string, error) {
+	if bi.ID != "" {
+		return bi.ID, nil
+	}
+	return "", errors.New("no id")
 }
 
-func (bi *bolterItem) get() error {
-	v, err := bi.DS.getBytes(bi.getID())
+func (bi *boltItem) get() error {
+	id, err := bi.getID()
+	if err != nil {
+		return err
+	}
+	v, err := bi.DS.dcbAsts.getBytes(id)
 	if err != nil {
 		return err
 	}
@@ -159,12 +163,16 @@ func (bi *bolterItem) get() error {
 	return nil
 }
 
-func (bi *bolterItem) set() error {
+func (bi *boltItem) set() error {
 	v, err := json.Marshal(bi)
 	if err != nil {
 		return err
 	}
-	if err = bi.DS.setBytes(bi.getID(), v); err != nil {
+	id, err := bi.getID()
+	if err != nil {
+		return err
+	}
+	if err = bi.DS.dcbAsts.setBytes(id, v); err != nil {
 		return err
 	}
 	return nil
