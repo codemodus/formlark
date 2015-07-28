@@ -17,6 +17,7 @@ type dataStores struct {
 	dcbsRsrcs *boltDB
 	dcbAsts   *boltBucket
 	dcbMrks   *boltBucket
+	dcbPosts  *boltBucket
 }
 
 type boltDB struct {
@@ -120,10 +121,13 @@ func (b *boltBucket) setBytes(k string, bs []byte) error {
 
 func (b *boltBucket) find(k string) error {
 	var v []byte
-	_ = b.db.View(func(tx *bolt.Tx) error {
+	err := b.db.View(func(tx *bolt.Tx) error {
 		v = tx.Bucket(b.name).Get([]byte(k))
 		return nil
 	})
+	if err != nil {
+		return err
+	}
 	if v == nil {
 		return errors.New("Value for Key is nil.")
 	}

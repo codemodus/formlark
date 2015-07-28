@@ -46,6 +46,10 @@ func main() {
 		su.logs.Err.Println(err)
 		os.Exit(EX_CANTCREAT)
 	}
+	if su.ds.dcbPosts, err = su.ds.dcbsRsrcs.getBucket("posts"); err != nil {
+		su.logs.Err.Println(err)
+		os.Exit(EX_CANTCREAT)
+	}
 
 	cl := newCluster(su)
 	cl.Configure(false)
