@@ -56,6 +56,7 @@ func (n *node) postHandler(ctx context.Context, w http.ResponseWriter, r *http.R
 
 		if err = u.validate(); err != nil {
 			http.Error(w, "user data invalid: "+err.Error(), 422)
+			return
 		}
 
 		if err := u.set(); err != nil {
@@ -66,12 +67,17 @@ func (n *node) postHandler(ctx context.Context, w http.ResponseWriter, r *http.R
 
 	// Check and handle form confirmation status.
 	fConfirm, ok := u.Confirm.Forms[rf]
-	if !ok || fConfirm == "" {
-		u.Confirm.Forms[rf] = n.getConfirmHash()
-		// TODO: Add to confirmation request spool.
-		http.Redirect(w, r, n.su.conf.ServerProtocol+n.su.conf.ServerDomain+"/unconfirmed", 303)
-		return
-	} else if fConfirm != "confirmed" {
+	if !ok || fConfirm != "" {
+		if err = n.su.ds.dcbIndCnfrm.find(u.ID); err != nil {
+			if err = n.su.ds.dcbIndCnfrm.setBytes(u.ID, []byte("")); err != nil {
+				http.Error(w, "cannot persist confirmation index to datastore", 500)
+				return
+			}
+		}
+		if !ok {
+			u.Confirm.Forms[rf] = n.getConfirmHash()
+			// TODO: send message with all needed confirmations
+		}
 		http.Redirect(w, r, n.su.conf.ServerProtocol+n.su.conf.ServerDomain+"/unconfirmed", 303)
 		return
 	}
@@ -99,6 +105,7 @@ func (n *node) postHandler(ctx context.Context, w http.ResponseWriter, r *http.R
 	}
 	if err = p.validate(); err != nil {
 		http.Error(w, "post data invalid: "+err.Error(), 422)
+		return
 	}
 	ps.S = append(ps.S, p)
 
@@ -128,8 +135,4 @@ func (n *node) getConfirmHash() string {
 	s := strconv.FormatUint(h.Sum64(), 10) +
 		"_" + strconv.FormatInt(time.Now().Unix(), 10)
 	return s
-}
-
-func (n *node) processConfirm(r *http.Request, u *user) {
-
 }
