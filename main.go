@@ -38,11 +38,15 @@ func main() {
 		su.logs.Err.Println(err)
 		os.Exit(EX_CANTCREAT)
 	}
-	if su.ds.dcbAsts, err = su.ds.dcbsRsrcs.getBucket("assets"); err != nil {
+	if su.ds.dcbUsers, err = su.ds.dcbsRsrcs.getBucket("users"); err != nil {
 		su.logs.Err.Println(err)
 		os.Exit(EX_CANTCREAT)
 	}
-	if su.ds.dcbMrks, err = su.ds.dcbsRsrcs.getBucket("markers"); err != nil {
+	if su.ds.dcbIndUsers, err = su.ds.dcbsRsrcs.getBucket("index-users"); err != nil {
+		su.logs.Err.Println(err)
+		os.Exit(EX_CANTCREAT)
+	}
+	if su.ds.dcbIndCnfrm, err = su.ds.dcbsRsrcs.getBucket("index-confirmation"); err != nil {
 		su.logs.Err.Println(err)
 		os.Exit(EX_CANTCREAT)
 	}

@@ -26,7 +26,7 @@ func (u *user) getID() (string, error) {
 		return u.ID, nil
 	}
 	if u.Email != "" {
-		k, err := u.DS.dcbMrks.getBytes(u.Email)
+		k, err := u.DS.dcbIndUsers.getBytes(u.Email)
 		if err != nil {
 			return "", err
 		}
@@ -42,7 +42,7 @@ func (u *user) get() error {
 	if err != nil {
 		return err
 	}
-	v, err := u.DS.dcbAsts.getBytes(id)
+	v, err := u.DS.dcbUsers.getBytes(id)
 	if err != nil {
 		return err
 	}
@@ -62,12 +62,12 @@ func (u *user) set() error {
 		return err
 	}
 	if u.Email != "" {
-		err = u.DS.dcbMrks.setBytes(u.Email, []byte(id))
+		err = u.DS.dcbIndUsers.setBytes(u.Email, []byte(id))
 		if err != nil {
 			return errors.New("cannot save markers")
 		}
 	}
-	if err = u.DS.dcbAsts.setBytes(id, v); err != nil {
+	if err = u.DS.dcbUsers.setBytes(id, v); err != nil {
 		return err
 	}
 	return nil

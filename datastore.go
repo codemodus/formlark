@@ -14,10 +14,11 @@ import (
 
 // DataStores holds available data stores.
 type dataStores struct {
-	dcbsRsrcs *boltDB
-	dcbAsts   *boltBucket
-	dcbMrks   *boltBucket
-	dcbPosts  *boltBucket
+	dcbsRsrcs   *boltDB
+	dcbUsers    *boltBucket
+	dcbIndUsers *boltBucket
+	dcbIndCnfrm *boltBucket
+	dcbPosts    *boltBucket
 }
 
 type boltDB struct {
@@ -157,7 +158,7 @@ func (bi *boltItem) get() error {
 	if err != nil {
 		return err
 	}
-	v, err := bi.DS.dcbAsts.getBytes(id)
+	v, err := bi.DS.dcbUsers.getBytes(id)
 	if err != nil {
 		return err
 	}
@@ -176,7 +177,7 @@ func (bi *boltItem) set() error {
 	if err != nil {
 		return err
 	}
-	if err = bi.DS.dcbAsts.setBytes(id, v); err != nil {
+	if err = bi.DS.dcbUsers.setBytes(id, v); err != nil {
 		return err
 	}
 	return nil

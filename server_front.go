@@ -32,7 +32,7 @@ func (n *node) postHandler(ctx context.Context, w http.ResponseWriter, r *http.R
 	}
 
 	// Search for user key by email/id.
-	k, err := n.su.ds.dcbMrks.getBytes(seg)
+	k, err := n.su.ds.dcbIndUsers.getBytes(seg)
 	if err != nil {
 		http.NotFound(w, r)
 		return
