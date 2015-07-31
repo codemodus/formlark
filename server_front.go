@@ -1,65 +1,48 @@
 package main
 
 import (
+	"errors"
 	"hash/fnv"
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/codemodus/parth"
+
 	"golang.org/x/net/context"
 )
 
 func (n *node) postHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	ref, err := url.Parse(r.Referer())
-	if err != nil || ref == nil {
+	rf, err := n.getReferer(r.Referer())
+	if err != nil {
 		http.Error(w, "referer must be parsable", 400)
 		return
 	}
-	rf := ref.String()
-
-	// Set segment index based on existence of form path prefix and get segment.
-	si := 0
-	if n.su.conf.FormPathPrefix != "" {
-		si = 1
-	}
-	seg, err := parth.SegmentToString(r.URL.Path, si)
+	seg, err := n.getIndexSegment(r.URL.Path)
 	if err != nil {
 		http.Error(w, "cannot process path", 422)
 		return
 	}
 
-	// Search for user key by email/id.
-	k, err := n.su.ds.dcbIndUsers.getBytes(seg)
+	u := n.newUser(seg)
+	ok, err := u.get()
 	if err != nil {
-		http.NotFound(w, r)
+		http.Error(w, "cannot access user data in datastore", 500)
 		return
 	}
-
-	u := n.newUser()
-
-	// If key is found...
-	if len(k) > 0 {
-		u.ID = string(k)
-		if err = u.get(); err != nil {
-			http.Error(w, "cannot resolve user data - please contact the admin", 500)
+	if !ok {
+		if u.Email == "" {
+			http.NotFound(w, r)
 			return
 		}
-	}
-
-	// If key is not found and segment might be an email...
-	if strings.Contains(seg, "@") {
-		u.Email = seg
 		u.ID = n.getKey()
-
 		if err = u.validate(); err != nil {
 			http.Error(w, "user data invalid: "+err.Error(), 422)
 			return
 		}
 
-		if err := u.set(); err != nil {
+		if err = u.set(); err != nil {
 			http.Error(w, "cannot persist user to datastore", 500)
 			return
 		}
@@ -77,23 +60,22 @@ func (n *node) postHandler(ctx context.Context, w http.ResponseWriter, r *http.R
 		if !ok {
 			u.Confirm.Forms[rf] = n.getConfirmHash()
 			// TODO: send message with all needed confirmations
+			// TODO: persist user
 		}
 		http.Redirect(w, r, n.su.conf.ServerProtocol+n.su.conf.ServerDomain+"/unconfirmed", 303)
 		return
 	}
 
-	ps := n.newPosts()
-	ps.ID = u.ID
-	if err = n.su.ds.dcbPosts.find(u.ID); err == nil {
-		if err = ps.get(); err != nil {
-			http.Error(w, "cannot resolve posts data - please contact the admin", 500)
-			return
-		}
+	ps := n.newPosts(u.ID)
+	ok, err = ps.get()
+	if err != nil {
+		http.Error(w, "cannot access posts data in datastore", 500)
+		return
 	}
 
 	// Prep request form.
 	if err = r.ParseForm(); err != nil {
-		http.Error(w, "cannot process form", 422)
+		http.Error(w, "cannot parse form", 422)
 		return
 	}
 
@@ -118,7 +100,25 @@ func (n *node) postHandler(ctx context.Context, w http.ResponseWriter, r *http.R
 	return
 }
 
-func (n *node) nilHandler(w http.ResponseWriter, r *http.Request) {}
+func (n *node) getReferer(r string) (string, error) {
+	ref, err := url.Parse(r)
+	if err != nil || ref == nil {
+		return "", errors.New("error parsing referer: " + err.Error())
+	}
+	return ref.String(), nil
+}
+
+func (n *node) getIndexSegment(s string) (string, error) {
+	si := 0
+	if n.su.conf.FormPathPrefix != "" {
+		si = 1
+	}
+	seg, err := parth.SegmentToString(s, si)
+	if err != nil {
+		return "", err
+	}
+	return seg, nil
+}
 
 func (n *node) getKey() string {
 	t := []byte(strconv.FormatInt(time.Now().UnixNano(), 10))

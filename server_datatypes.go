@@ -1,73 +1,97 @@
 package main
 
 import (
+	"bytes"
+	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 )
-
-func (n *node) newUser() *user {
-	return &user{
-		dtUser: newUser(),
-		boltItem: &boltItem{
-			DS: n.su.ds,
-		},
-	}
-}
 
 type user struct {
 	*boltItem
 	*dtUser
 }
 
-func (u *user) getID() (string, error) {
-	if u.ID != "" {
-		return u.ID, nil
+func (n *node) newUser(i string) *user {
+	u := &user{
+		dtUser: newUser(),
+		boltItem: &boltItem{
+			DS: n.su.ds,
+		},
 	}
-	if u.Email != "" {
-		k, err := u.DS.dcbIndUsers.getBytes(u.Email)
+
+	if strings.Contains(i, "@") {
+		u.Email = i
+	} else {
+		u.ID = i
+	}
+	return u
+}
+
+func (u *user) getID() (string, error) {
+	var k []byte
+	var err error
+	if u.ID != "" {
+		k, err = u.DS.dcbIndUsers.getBytes(u.ID)
 		if err != nil {
 			return "", err
 		}
-		if len(k) > 0 {
-			return string(k), nil
+	}
+	if len(k) == 0 && u.Email != "" {
+		k, err = u.DS.dcbIndUsers.getBytes(u.Email)
+		if err != nil {
+			return "", err
 		}
 	}
-	return "", errors.New("no id")
+	if len(k) == 0 {
+		return "", errors.New("not found")
+	}
+	return string(k), nil
 }
 
-func (u *user) get() error {
+func (u *user) get() (bool, error) {
 	id, err := u.getID()
 	if err != nil {
-		return err
+		return false, err
 	}
-	v, err := u.DS.dcbUsers.getBytes(id)
-	if err != nil {
-		return err
+
+	b, err := u.DS.dcbUsers.getBytes(id)
+	if len(b) == 0 || err != nil {
+		return false, err
 	}
-	if err := json.Unmarshal(v, u); err != nil {
-		return err
+	br := bytes.NewReader(b)
+	dec := gob.NewDecoder(br)
+	if err := dec.Decode(u); err != nil {
+		return false, err
 	}
-	return nil
+	return true, nil
 }
 
 func (u *user) set() error {
-	v, err := json.Marshal(u)
-	if err != nil {
-		return err
+	if u.Email == "" {
+		return errors.New("user data incomplete: missing email")
 	}
 	id, err := u.getID()
 	if err != nil {
 		return err
 	}
-	if u.Email != "" {
-		err = u.DS.dcbIndUsers.setBytes(u.Email, []byte(id))
-		if err != nil {
-			return errors.New("cannot save markers")
-		}
+
+	if err = u.DS.dcbIndUsers.setBytes(u.ID, []byte(id)); err != nil {
+		return err
 	}
-	if err = u.DS.dcbUsers.setBytes(id, v); err != nil {
+	if err = u.DS.dcbIndUsers.setBytes(u.Email, []byte(id)); err != nil {
+		return err
+	}
+
+	bb := &bytes.Buffer{}
+	enc := gob.NewEncoder(bb)
+	if err := enc.Encode(u); err != nil {
+		return err
+	}
+	if err = u.DS.dcbUsers.set(id, bb); err != nil {
 		return err
 	}
 	return nil
@@ -116,28 +140,30 @@ type posts struct {
 	S []*post
 }
 
-func (n *node) newPosts() *posts {
+func (n *node) newPosts(i string) *posts {
 	return &posts{
 		S: make([]*post, 0),
 		boltItem: &boltItem{
-			DS: n.su.ds,
+			ID: i, DS: n.su.ds,
 		},
 	}
 }
 
-func (ps *posts) get() error {
+func (ps *posts) get() (bool, error) {
 	id, err := ps.getID()
 	if err != nil {
-		return err
+		return false, err
 	}
-	v, err := ps.DS.dcbPosts.getBytes(id)
-	if err != nil {
-		return err
+	b, err := ps.DS.dcbPosts.getBytes(id)
+	if len(b) == 0 || err != nil {
+		return false, err
 	}
-	if err := json.Unmarshal(v, ps); err != nil {
-		return err
+	br := bytes.NewReader(b)
+	dec := gob.NewDecoder(br)
+	if err := dec.Decode(ps); err != nil {
+		return false, err
 	}
-	return nil
+	return true, nil
 }
 
 func (ps *posts) set() error {

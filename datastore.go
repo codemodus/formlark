@@ -2,7 +2,7 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
+	"encoding/gob"
 	"errors"
 	"io"
 	"os"
@@ -100,10 +100,15 @@ func (b *boltBucket) getBytes(k string) ([]byte, error) {
 	return v, nil
 }
 
-func (b *boltBucket) set(k string, r io.Reader) {
+func (b *boltBucket) set(k string, r io.Reader) error {
 	bb := &bytes.Buffer{}
-	_, _ = bb.ReadFrom(r)
-	b.setBytes(k, bb.Bytes())
+	if _, err := bb.ReadFrom(r); err != nil {
+		return err
+	}
+	if err := b.setBytes(k, bb.Bytes()); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (b *boltBucket) setBytes(k string, bs []byte) error {
@@ -137,7 +142,7 @@ func (b *boltBucket) find(k string) error {
 
 type bolter interface {
 	getID() (string, error)
-	get() error
+	get() (bool, error)
 	set() error
 }
 
@@ -153,31 +158,37 @@ func (bi *boltItem) getID() (string, error) {
 	return "", errors.New("no id")
 }
 
-func (bi *boltItem) get() error {
+func (bi *boltItem) get() (bool, error) {
 	id, err := bi.getID()
 	if err != nil {
-		return err
+		return false, err
 	}
-	v, err := bi.DS.dcbUsers.getBytes(id)
+	b, err := bi.DS.dcbUsers.getBytes(id)
 	if err != nil {
-		return err
+		return false, err
 	}
-	if err := json.Unmarshal(v, bi); err != nil {
-		return err
+	if len(b) == 0 {
+		return false, nil
 	}
-	return nil
+	br := bytes.NewReader(b)
+	dec := gob.NewDecoder(br)
+	if err := dec.Decode(bi); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (bi *boltItem) set() error {
-	v, err := json.Marshal(bi)
-	if err != nil {
-		return err
-	}
 	id, err := bi.getID()
 	if err != nil {
 		return err
 	}
-	if err = bi.DS.dcbUsers.setBytes(id, v); err != nil {
+	bb := &bytes.Buffer{}
+	enc := gob.NewEncoder(bb)
+	if err := enc.Encode(bi); err != nil {
+		return err
+	}
+	if err = bi.DS.dcbUsers.set(id, bb); err != nil {
 		return err
 	}
 	return nil
