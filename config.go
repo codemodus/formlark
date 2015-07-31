@@ -8,6 +8,7 @@ type conf struct {
 	*config.Config
 	ServerDomain   string
 	ServerPort     string
+	ServerProtocol string
 	FormPathPrefix string
 	SMTPDomain     string
 	SMTPUser       string

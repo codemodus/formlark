@@ -3,14 +3,13 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 )
 
 func (n *node) newUser() *user {
 	return &user{
-		dtUser: &dtUser{},
+		dtUser: newUser(),
 		boltItem: &boltItem{
 			DS: n.su.ds,
 		},
@@ -80,9 +79,7 @@ type post struct {
 
 func (n *node) newPost() *post {
 	return &post{
-		dtPost: &dtPost{
-			Content: make(map[string][]string),
-		},
+		dtPost: newPost(),
 	}
 }
 
@@ -137,7 +134,6 @@ func (ps *posts) get() error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(v)
 	if err := json.Unmarshal(v, ps); err != nil {
 		return err
 	}
