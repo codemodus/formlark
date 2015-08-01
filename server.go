@@ -47,8 +47,10 @@ func (cl *cluster) Configure(linkage bool) {
 
 func (n *node) setupMux() *mixmux.TreeMux {
 	c := chain.New(n.reco, n.initReq, n.log, chain.Convert(n.Node.Wedge))
+	sc := c.Append(n.auth)
 	m := mixmux.NewTreeMux()
 
+	m.Get("/"+n.su.conf.AdminPathPrefix+"/*x", sc.EndFn(n.adminHandler))
 	m.Post(
 		path.Join("/"+n.su.conf.FormPathPrefix+"/*x"),
 		c.EndFn(n.postHandler),
@@ -92,6 +94,32 @@ func (n *node) log(next chain.Handler) chain.Handler {
 
 		/*pc, _ := chain.GetPHFC(ctx)
 		tx1, _ := startTimeFromCtx(*pc)*/
+	})
+}
+
+func (n *node) auth(next chain.Handler) chain.Handler {
+	return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+		/*w.Header().Set("WWW-Authenticate", `Basic realm="Administration"`)
+
+		lo := r.URL.Query().Get("logout")
+		if lo != "" {
+			//http.Error(w, "Logged out", 401)
+			//return
+			r.SetBasicAuth("", "")
+		}
+
+		su, sp, ok := r.BasicAuth()
+		if ok {
+			if su == n.su.conf.AdminUser && sp == n.su.conf.AdminPass {
+		*/next.ServeHTTPContext(ctx, w, r) /*
+				} else {
+					ok = false
+				}
+			}
+			if !ok {
+				http.Error(w, "Unauthorized", 401)
+				return
+			}*/
 	})
 }
 

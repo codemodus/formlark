@@ -55,6 +55,8 @@ func main() {
 		os.Exit(EX_CANTCREAT)
 	}
 
+	su.ts = getTemplates()
+
 	cl := newCluster(su)
 	cl.Configure(false)
 	cl.Run()

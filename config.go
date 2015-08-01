@@ -6,14 +6,17 @@ import (
 
 type conf struct {
 	*config.Config
-	ServerDomain   string
-	ServerPort     string
-	ServerProtocol string
-	FormPathPrefix string
-	SMTPDomain     string
-	SMTPUser       string
-	SMTPPassword   string
-	ValidDomains   []string
+	ServerDomain    string
+	ServerPort      string
+	ServerProtocol  string
+	FormPathPrefix  string
+	AdminPathPrefix string
+	AdminUser       string
+	AdminPass       string
+	SMTPDomain      string
+	SMTPUser        string
+	SMTPPass        string
+	ValidDomains    []string
 }
 
 func (c *conf) InitPost() (err error) {

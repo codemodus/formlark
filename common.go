@@ -1,6 +1,7 @@
 package main
 
 import (
+	"html/template"
 	"time"
 
 	"github.com/codemodus/loggers"
@@ -30,6 +31,7 @@ type sysUtils struct {
 	conf *conf
 	ds   *dataStores
 	logs *loggers.Loggers
+	ts   *template.Template
 }
 
 type rCtxCmn int
