@@ -15,8 +15,10 @@ func (n *node) adminGetHandler(ctx context.Context, w http.ResponseWriter, r *ht
 	}
 
 	d := struct {
+		*Page
 		User string
 	}{
+		n.newPage(),
 		usr.(string),
 	}
 	err := n.su.ts.ExecuteTemplate(w, "admin/index.html", d)
@@ -28,7 +30,7 @@ func (n *node) adminGetHandler(ctx context.Context, w http.ResponseWriter, r *ht
 }
 
 func (n *node) adminLoginGetHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	p := Page{URLLogin: "/" + n.su.conf.AdminPathPrefix + "/login"}
+	p := n.newPage()
 	err := n.su.ts.ExecuteTemplate(w, "admin/login.html", p)
 	if err != nil {
 		http.Error(w, "template failed - please contact the site admin", 500)

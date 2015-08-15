@@ -8,7 +8,12 @@ import (
 )
 
 type Page struct {
+	AppName  string
 	URLLogin string
+}
+
+func NewPage() *Page {
+	return &Page{AppName: "Formlark", URLLogin: "/admin/login"}
 }
 
 func getTemplates() *template.Template {
