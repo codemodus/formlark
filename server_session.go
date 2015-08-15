@@ -72,20 +72,24 @@ func (sm *SessionManager) SessionID() string {
 func (sm *SessionManager) SessionStart(w http.ResponseWriter, r *http.Request) (s Session) {
 	sm.Mu.Lock()
 	defer sm.Mu.Unlock()
+
 	c, err := r.Cookie(sm.Name)
-	if err != nil || c.Value == "" {
-		id := sm.SessionID()
-		s, _ = sm.Pvd.SessionCreate(id)
-		c := &http.Cookie{Name: sm.Name, Value: url.QueryEscape(id), Path: "/", HttpOnly: true, MaxAge: int(sm.MaxLife)}
-		http.SetCookie(w, c)
-	} else {
+	if err == nil && c.Value != "" {
 		id, _ := url.QueryUnescape(c.Value)
-		s, _ = sm.Pvd.SessionRead(id)
+		s, err = sm.Pvd.SessionRead(id)
+		if err == nil {
+			return s
+		}
 	}
+
+	id := sm.SessionID()
+	if s, err = sm.Pvd.SessionCreate(id); err != nil {
+		panic("how could you do this?")
+	}
+	c = &http.Cookie{Name: sm.Name, Value: url.QueryEscape(id), Path: "/", HttpOnly: true, MaxAge: int(sm.MaxLife)}
+	http.SetCookie(w, c)
 	return s
 }
-
-// TODO: Create new session if not found in mem.
 
 type TestSession struct {
 	ID      string
