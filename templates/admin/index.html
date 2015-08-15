@@ -6,25 +6,15 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-  <title>Login Form</title>
+  <title>Admin</title>
   <link rel="stylesheet" href="css/style.css">
   <!--[if lt IE 9]><script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
 </head>
 <body>
   <section class="container">
     <div class="login">
-      <h1>Login to Web App</h1>
-      <form method="post" action="{{ .URLLogin }}">
-        <p><input type="text" name="user" value="" placeholder="Username or Email"></p>
-        <p><input type="password" name="pass" value="" placeholder="Password"></p>
-        <p class="remember_me">
-          <label>
-            <input type="checkbox" name="remember_me" id="remember_me">
-            Remember me on this computer
-          </label>
-        </p>
-        <p class="submit"><input type="submit" name="commit" value="Login"></p>
-      </form>
+      <h1>Formlark Administration</h1>
+        <p>Welcome, {{ .User }}</p>
     </div>
   </section>
 </body>

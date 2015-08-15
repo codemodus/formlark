@@ -18,6 +18,7 @@ import (
 type node struct {
 	*httpcluster.Node
 	su *sysUtils
+	sm *SessionManager
 }
 
 type cluster struct {
@@ -31,10 +32,17 @@ func newCluster(su *sysUtils) *cluster {
 	}
 }
 
-// Configure sets up all necessary front and back servers using Apps.
 func (cl *cluster) Configure(linkage bool) {
+	pvr := NewProvisor()
+	pvd := NewTestProvider()
+	pvr.Register("test", pvd)
+	sm, err := NewSessionManager(pvr, "test", "cook-e", 45)
+	if err != nil {
+		panic(err.Error())
+	}
+
 	n := &node{
-		su: cl.su,
+		su: cl.su, sm: sm,
 		Node: &httpcluster.Node{
 			Timeout: time.Second * 5, Addr: cl.su.conf.ServerPort,
 		},
@@ -50,11 +58,13 @@ func (n *node) setupMux() *mixmux.TreeMux {
 	sc := c.Append(n.auth)
 	m := mixmux.NewTreeMux()
 
-	m.Get("/"+n.su.conf.AdminPathPrefix+"/*x", sc.EndFn(n.adminHandler))
-	m.Post(
-		path.Join("/"+n.su.conf.FormPathPrefix+"/*x"),
-		c.EndFn(n.postHandler),
-	)
+	m.Post(path.Join("/"+n.su.conf.FormPathPrefix+"/*x"), c.EndFn(n.postHandler))
+
+	mAdm := m.Group("/" + n.su.conf.AdminPathPrefix)
+	mAdm.Get("/", sc.EndFn(n.adminGetHandler))
+	mAdm.Get("/login", c.EndFn(n.adminLoginGetHandler))
+	mAdm.Post("/login", c.EndFn(n.adminLoginPostHandler))
+	mAdm.Get("/*x", c.EndFn(n.NotFound))
 	return m
 }
 
@@ -99,28 +109,25 @@ func (n *node) log(next chain.Handler) chain.Handler {
 
 func (n *node) auth(next chain.Handler) chain.Handler {
 	return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		/*w.Header().Set("WWW-Authenticate", `Basic realm="Administration"`)
-
-		lo := r.URL.Query().Get("logout")
+		s := n.sm.SessionStart(w, r)
+		logged := s.Get("logged")
+		if logged == nil || logged.(bool) == false {
+			http.Redirect(w, r, "/"+n.su.conf.AdminPathPrefix+"/login", 302)
+			return
+		}
+		/*lo := r.URL.Query().Get("logout")
 		if lo != "" {
 			//http.Error(w, "Logged out", 401)
 			//return
 			r.SetBasicAuth("", "")
-		}
-
-		su, sp, ok := r.BasicAuth()
-		if ok {
-			if su == n.su.conf.AdminUser && sp == n.su.conf.AdminPass {
-		*/next.ServeHTTPContext(ctx, w, r) /*
-				} else {
-					ok = false
-				}
-			}
-			if !ok {
-				http.Error(w, "Unauthorized", 401)
-				return
-			}*/
+		}*/
+		next.ServeHTTPContext(ctx, w, r)
 	})
+}
+
+func (n *node) NotFound(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	http.NotFound(w, r)
+	return
 }
 
 func (cl *cluster) signal(sm *sigmon.SignalMonitor) {

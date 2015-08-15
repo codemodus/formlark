@@ -7,6 +7,10 @@ import (
 	"path/filepath"
 )
 
+type Page struct {
+	URLLogin string
+}
+
 func getTemplates() *template.Template {
 	dir := `templates`
 	fMap := template.FuncMap{}
