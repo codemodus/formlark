@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/codemodus/chain"
+	"github.com/codemodus/formlark/internal/sessmgr"
 	"github.com/codemodus/httpcluster"
 	"github.com/codemodus/loggers"
 	"github.com/codemodus/mixmux"
@@ -18,7 +19,7 @@ import (
 type node struct {
 	*httpcluster.Node
 	su *sysUtils
-	sm *SessionManager
+	sm *sessmgr.SessionManager
 }
 
 type cluster struct {
@@ -33,10 +34,10 @@ func newCluster(su *sysUtils) *cluster {
 }
 
 func (cl *cluster) Configure(linkage bool) {
-	pvr := NewProvisor()
-	pvd := NewTestProvider()
+	pvr := sessmgr.NewProvisor()
+	pvd := sessmgr.NewTestProvider()
 	pvr.Register("test", pvd)
-	sm, err := NewSessionManager(pvr, "test", "cook-e", 45)
+	sm, err := sessmgr.NewSessionManager(pvr, "test", "cook-e", 45)
 	if err != nil {
 		panic(err.Error())
 	}
