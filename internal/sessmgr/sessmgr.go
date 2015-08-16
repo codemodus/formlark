@@ -20,48 +20,27 @@ type Session interface {
 }
 
 type Provider interface {
-	SessCreate(string) (Session, error)
-	SessRead(string) (Session, error)
-	SessUpdate(string) error
-	SessDestroy(string)
-	SessGC(int64)
-}
-
-type ProviderRegistry map[string]Provider
-
-func NewProviderRegistry() *ProviderRegistry {
-	m := make(map[string]Provider)
-	p := ProviderRegistry(m)
-	return &p
-}
-
-func (p *ProviderRegistry) Register(name string, pdr Provider) {
-	if pdr == nil {
-		panic("session manager: register called with provider as nil")
-	}
-	if _, dup := (*p)[name]; dup {
-		panic(`session manager: register called twice for provider "` + name + `"`)
-	}
-	(*p)[name] = pdr
+	Create(string) (Session, error)
+	Read(string) (Session, error)
+	Update(string) error
+	Destroy(string)
+	GC(int64)
+	// TODO: GC and persistent providers.
 }
 
 type Manager struct {
+	// TODO: Mutex???
 	Mu      sync.Mutex
-	ProReg  *ProviderRegistry
 	Name    string
-	Pvd     Provider
 	MaxLife int64
+	prov    Provider
 }
 
-func New(proReg *ProviderRegistry, providerName, cookieName string, maxLife int64) (*Manager, error) {
-	pvd, ok := (*proReg)[providerName]
-	if !ok {
-		return nil, fmt.Errorf("session manager: unknown provider %q", providerName)
-	}
-	return &Manager{ProReg: proReg, Pvd: pvd, Name: cookieName, MaxLife: maxLife}, nil
+func New(name string, maxLife int64, provider Provider) (*Manager, error) {
+	return &Manager{Name: name, MaxLife: maxLife, prov: provider}, nil
 }
 
-func (sm *Manager) SessID() string {
+func (m *Manager) GenSessID() string {
 	b := make([]byte, 32)
 	if _, err := io.ReadFull(rand.Reader, b); err != nil {
 		return ""
@@ -69,43 +48,62 @@ func (sm *Manager) SessID() string {
 	return base64.URLEncoding.EncodeToString(b)
 }
 
-func (sm *Manager) SessStart(w http.ResponseWriter, r *http.Request) (s Session) {
-	sm.Mu.Lock()
-	defer sm.Mu.Unlock()
+func (m *Manager) SessStart(w http.ResponseWriter, r *http.Request) (s Session) {
+	m.Mu.Lock()
+	defer m.Mu.Unlock()
 
-	c, err := r.Cookie(sm.Name)
+	c, err := r.Cookie(m.Name)
 	if err == nil && c.Value != "" {
 		id, _ := url.QueryUnescape(c.Value)
-		s, err = sm.Pvd.SessRead(id)
+		s, err = m.prov.Read(id)
 		if err == nil {
 			return s
 		}
 	}
 
-	id := sm.SessID()
-	if s, err = sm.Pvd.SessCreate(id); err != nil {
+	id := m.GenSessID()
+	if s, err = m.prov.Create(id); err != nil {
 		panic("how could you do this?")
 	}
-	c = &http.Cookie{Name: sm.Name, Value: url.QueryEscape(id), Path: "/", HttpOnly: true, MaxAge: int(sm.MaxLife)}
+	c = &http.Cookie{Name: m.Name, Value: url.QueryEscape(id), Path: "/", HttpOnly: true, MaxAge: int(m.MaxLife)}
 	http.SetCookie(w, c)
 	return s
 }
 
+func (m *Manager) SessStop(w http.ResponseWriter, r *http.Request) {
+	m.Mu.Lock()
+	defer m.Mu.Unlock()
+
+	c, err := r.Cookie(m.Name)
+	if err == nil && c.Value != "" {
+		id, _ := url.QueryUnescape(c.Value)
+		m.prov.Destroy(id)
+		c = &http.Cookie{Name: m.Name, MaxAge: -1, Expires: time.Unix(1, 0)}
+		http.SetCookie(w, c)
+	}
+}
+
 type Sess struct {
-	ID      string
-	LastAcs time.Time
-	Val     map[string]interface{}
-	Pvd     Provider
+	ID   string
+	Last time.Time
+	// TODO: Mutex?
+	Val  map[string]interface{}
+	prov Provider
+}
+
+func NewSess(id string, provider Provider) *Sess {
+	v := make(map[string]interface{}, 0)
+	return &Sess{ID: id, Last: time.Now(), Val: v, prov: provider}
 }
 
 func (s *Sess) Set(key string, val interface{}) error {
 	s.Val[key] = val
-	s.Pvd.SessUpdate(s.ID)
+	s.prov.Update(s.ID)
 	return nil
 }
 
 func (s *Sess) Get(key string) interface{} {
-	s.Pvd.SessUpdate(s.ID)
+	s.prov.Update(s.ID)
 	if v, ok := s.Val[key]; ok {
 		return v
 	}
@@ -114,7 +112,7 @@ func (s *Sess) Get(key string) interface{} {
 
 func (s *Sess) Delete(key string) {
 	delete(s.Val, key)
-	s.Pvd.SessUpdate(s.ID)
+	s.prov.Update(s.ID)
 }
 
 func (s *Sess) SessID() string {
@@ -132,50 +130,49 @@ func NewVolatileProvider() *VolatileProvider {
 	return &VolatileProvider{sessions: ss, list: list.New()}
 }
 
-func (p *VolatileProvider) SessCreate(id string) (Session, error) {
+func (p *VolatileProvider) Create(id string) (Session, error) {
 	p.Mu.Lock()
 	defer p.Mu.Unlock()
-	v := make(map[string]interface{}, 0)
-	s := &Sess{ID: id, LastAcs: time.Now(), Val: v, Pvd: p}
+	s := NewSess(id, p)
 	elem := p.list.PushBack(s)
 	p.sessions[id] = elem
 	return s, nil
 }
 
-func (p *VolatileProvider) SessRead(id string) (Session, error) {
+func (p *VolatileProvider) Read(id string) (Session, error) {
 	if elem, ok := p.sessions[id]; ok {
 		return elem.Value.(*Sess), nil
 	}
 	return nil, fmt.Errorf(`session %q does not exist`, id)
 }
 
-func (p *VolatileProvider) SessDestroy(id string) {
+func (p *VolatileProvider) Update(id string) error {
+	p.Mu.Lock()
+	defer p.Mu.Unlock()
+	if elem, ok := p.sessions[id]; ok {
+		elem.Value.(*Sess).Last = time.Now()
+		p.list.MoveToFront(elem)
+	}
+	return nil
+}
+
+func (p *VolatileProvider) Destroy(id string) {
 	if elem, ok := p.sessions[id]; ok {
 		delete(p.sessions, id)
 		p.list.Remove(elem)
 	}
 }
 
-func (p *VolatileProvider) SessGC(maxLife int64) {
+func (p *VolatileProvider) GC(maxLife int64) {
 	p.Mu.Lock()
 	defer p.Mu.Unlock()
 
 	for elem := p.list.Back(); elem != nil; elem = p.list.Back() {
-		if (elem.Value.(*Sess).LastAcs.Unix() + maxLife) < time.Now().Unix() {
+		if (elem.Value.(*Sess).Last.Unix() + maxLife) < time.Now().Unix() {
 			p.list.Remove(elem)
 			delete(p.sessions, elem.Value.(*Sess).ID)
 		} else {
 			continue
 		}
 	}
-}
-
-func (p *VolatileProvider) SessUpdate(id string) error {
-	p.Mu.Lock()
-	defer p.Mu.Unlock()
-	if elem, ok := p.sessions[id]; ok {
-		elem.Value.(*Sess).LastAcs = time.Now()
-		p.list.MoveToFront(elem)
-	}
-	return nil
 }

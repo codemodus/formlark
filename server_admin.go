@@ -9,10 +9,6 @@ import (
 func (n *node) adminGetHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	s := n.sm.SessStart(w, r)
 	usr := s.Get("user")
-	if usr == nil || usr.(string) == "" {
-		http.Redirect(w, r, "/", 302)
-		return
-	}
 
 	d := struct {
 		*Page
@@ -30,12 +26,20 @@ func (n *node) adminGetHandler(ctx context.Context, w http.ResponseWriter, r *ht
 }
 
 func (n *node) adminLoginGetHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	s := n.sm.SessStart(w, r)
+	usr := s.Get("user")
+	if usr != nil && usr.(string) != "" {
+		http.Redirect(w, r, "/"+n.su.conf.AdminPathPrefix, 302)
+		return
+	}
+
 	p := n.newPage()
 	err := n.su.ts.ExecuteTemplate(w, "admin/login.html", p)
 	if err != nil {
 		http.Error(w, "template failed - please contact the site admin", 500)
 		return
 	}
+	return
 }
 
 func (n *node) adminLoginPostHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
@@ -47,7 +51,6 @@ func (n *node) adminLoginPostHandler(ctx context.Context, w http.ResponseWriter,
 	pass := r.Form.Get("pass")
 	if usr == n.su.conf.AdminUser && pass == n.su.conf.AdminPass {
 		s := n.sm.SessStart(w, r)
-		s.Set("logged", true)
 		s.Set("user", usr)
 
 		http.Redirect(w, r, "/"+n.su.conf.AdminPathPrefix, 303)

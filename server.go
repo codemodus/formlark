@@ -34,10 +34,8 @@ func newCluster(su *sysUtils) *cluster {
 }
 
 func (cl *cluster) Configure(linkage bool) {
-	pvr := sessmgr.NewProviderRegistry()
-	pvd := sessmgr.NewVolatileProvider()
-	pvr.Register("test", pvd)
-	sm, err := sessmgr.New(pvr, "test", "cook-e", 45)
+	p := sessmgr.NewVolatileProvider()
+	sm, err := sessmgr.New("cook-e", 45, p)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -111,17 +109,19 @@ func (n *node) log(next chain.Handler) chain.Handler {
 func (n *node) auth(next chain.Handler) chain.Handler {
 	return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		s := n.sm.SessStart(w, r)
-		logged := s.Get("logged")
-		if logged == nil || logged.(bool) == false {
+		usr := s.Get("user")
+		if usr == nil || usr.(string) == "" {
 			http.Redirect(w, r, "/"+n.su.conf.AdminPathPrefix+"/login", 302)
 			return
 		}
-		/*lo := r.URL.Query().Get("logout")
-		if lo != "" {
-			//http.Error(w, "Logged out", 401)
-			//return
-			r.SetBasicAuth("", "")
-		}*/
+
+		out := r.URL.Query().Get("logout")
+		if out != "" {
+			n.sm.SessStop(w, r)
+			http.Redirect(w, r, "/"+n.su.conf.AdminPathPrefix+"/login", 302)
+			return
+		}
+
 		next.ServeHTTPContext(ctx, w, r)
 	})
 }
