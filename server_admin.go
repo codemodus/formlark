@@ -7,7 +7,7 @@ import (
 )
 
 func (n *node) adminGetHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	s := n.sm.SessionStart(w, r)
+	s := n.sm.SessStart(w, r)
 	usr := s.Get("user")
 	if usr == nil || usr.(string) == "" {
 		http.Redirect(w, r, "/", 302)
@@ -46,7 +46,7 @@ func (n *node) adminLoginPostHandler(ctx context.Context, w http.ResponseWriter,
 	usr := r.Form.Get("user")
 	pass := r.Form.Get("pass")
 	if usr == n.su.conf.AdminUser && pass == n.su.conf.AdminPass {
-		s := n.sm.SessionStart(w, r)
+		s := n.sm.SessStart(w, r)
 		s.Set("logged", true)
 		s.Set("user", usr)
 

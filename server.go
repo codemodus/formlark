@@ -19,7 +19,7 @@ import (
 type node struct {
 	*httpcluster.Node
 	su *sysUtils
-	sm *sessmgr.SessionManager
+	sm *sessmgr.Manager
 }
 
 type cluster struct {
@@ -34,10 +34,10 @@ func newCluster(su *sysUtils) *cluster {
 }
 
 func (cl *cluster) Configure(linkage bool) {
-	pvr := sessmgr.NewProvisor()
-	pvd := sessmgr.NewTestProvider()
+	pvr := sessmgr.NewProviderRegistry()
+	pvd := sessmgr.NewVolatileProvider()
 	pvr.Register("test", pvd)
-	sm, err := sessmgr.NewSessionManager(pvr, "test", "cook-e", 45)
+	sm, err := sessmgr.New(pvr, "test", "cook-e", 45)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -110,7 +110,7 @@ func (n *node) log(next chain.Handler) chain.Handler {
 
 func (n *node) auth(next chain.Handler) chain.Handler {
 	return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		s := n.sm.SessionStart(w, r)
+		s := n.sm.SessStart(w, r)
 		logged := s.Get("logged")
 		if logged == nil || logged.(bool) == false {
 			http.Redirect(w, r, "/"+n.su.conf.AdminPathPrefix+"/login", 302)
