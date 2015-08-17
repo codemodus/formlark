@@ -14,8 +14,8 @@ import (
 
 type Session interface {
 	Set(string, interface{}) error
-	Get(string) interface{}
-	Delete(string)
+	Get(string) (interface{}, bool)
+	Unset(string)
 	SessID() string
 }
 
@@ -29,18 +29,20 @@ type Provider interface {
 }
 
 type Manager struct {
-	// TODO: Mutex???
-	Mu      sync.Mutex
-	Name    string
-	MaxLife int64
+	name    string
+	maxLife int64
 	prov    Provider
 }
 
-func New(name string, maxLife int64, provider Provider) (*Manager, error) {
-	return &Manager{Name: name, MaxLife: maxLife, prov: provider}, nil
+func New(name string, maxLife int64, provider Provider) *Manager {
+	return &Manager{
+		name:    name,
+		maxLife: maxLife,
+		prov:    provider,
+	}
 }
 
-func (m *Manager) GenSessID() string {
+func (m *Manager) genSessID() string {
 	b := make([]byte, 32)
 	if _, err := io.ReadFull(rand.Reader, b); err != nil {
 		return ""
@@ -49,10 +51,7 @@ func (m *Manager) GenSessID() string {
 }
 
 func (m *Manager) SessStart(w http.ResponseWriter, r *http.Request) (s Session) {
-	m.Mu.Lock()
-	defer m.Mu.Unlock()
-
-	c, err := r.Cookie(m.Name)
+	c, err := r.Cookie(m.name)
 	if err == nil && c.Value != "" {
 		id, _ := url.QueryUnescape(c.Value)
 		s, err = m.prov.Read(id)
@@ -61,24 +60,21 @@ func (m *Manager) SessStart(w http.ResponseWriter, r *http.Request) (s Session) 
 		}
 	}
 
-	id := m.GenSessID()
+	id := m.genSessID()
 	if s, err = m.prov.Create(id); err != nil {
 		panic("how could you do this?")
 	}
-	c = &http.Cookie{Name: m.Name, Value: url.QueryEscape(id), Path: "/", HttpOnly: true, MaxAge: int(m.MaxLife)}
+	c = &http.Cookie{Name: m.name, Value: url.QueryEscape(id), Path: "/", HttpOnly: true, MaxAge: int(m.maxLife)}
 	http.SetCookie(w, c)
 	return s
 }
 
 func (m *Manager) SessStop(w http.ResponseWriter, r *http.Request) {
-	m.Mu.Lock()
-	defer m.Mu.Unlock()
-
-	c, err := r.Cookie(m.Name)
+	c, err := r.Cookie(m.name)
 	if err == nil && c.Value != "" {
 		id, _ := url.QueryUnescape(c.Value)
 		m.prov.Destroy(id)
-		c = &http.Cookie{Name: m.Name, MaxAge: -1, Expires: time.Unix(1, 0)}
+		c = &http.Cookie{Name: m.name, MaxAge: -1, Expires: time.Unix(1, 0)}
 		http.SetCookie(w, c)
 	}
 }
@@ -86,7 +82,7 @@ func (m *Manager) SessStop(w http.ResponseWriter, r *http.Request) {
 type Sess struct {
 	ID   string
 	Last time.Time
-	// TODO: Mutex?
+	mu   sync.RWMutex
 	Val  map[string]interface{}
 	prov Provider
 }
@@ -97,20 +93,24 @@ func NewSess(id string, provider Provider) *Sess {
 }
 
 func (s *Sess) Set(key string, val interface{}) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.Val[key] = val
 	s.prov.Update(s.ID)
 	return nil
 }
 
-func (s *Sess) Get(key string) interface{} {
+func (s *Sess) Get(key string) (interface{}, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	s.prov.Update(s.ID)
-	if v, ok := s.Val[key]; ok {
-		return v
-	}
-	return nil
+	v, ok := s.Val[key]
+	return v, ok
 }
 
-func (s *Sess) Delete(key string) {
+func (s *Sess) Unset(key string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	delete(s.Val, key)
 	s.prov.Update(s.ID)
 }
@@ -120,19 +120,19 @@ func (s *Sess) SessID() string {
 }
 
 type VolatileProvider struct {
-	Mu       sync.Mutex
+	mu       sync.RWMutex
 	sessions map[string]*list.Element
 	list     *list.List
 }
 
 func NewVolatileProvider() *VolatileProvider {
-	ss := make(map[string]*list.Element)
-	return &VolatileProvider{sessions: ss, list: list.New()}
+	s := make(map[string]*list.Element)
+	return &VolatileProvider{sessions: s, list: list.New()}
 }
 
 func (p *VolatileProvider) Create(id string) (Session, error) {
-	p.Mu.Lock()
-	defer p.Mu.Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	s := NewSess(id, p)
 	elem := p.list.PushBack(s)
 	p.sessions[id] = elem
@@ -140,6 +140,8 @@ func (p *VolatileProvider) Create(id string) (Session, error) {
 }
 
 func (p *VolatileProvider) Read(id string) (Session, error) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 	if elem, ok := p.sessions[id]; ok {
 		return elem.Value.(*Sess), nil
 	}
@@ -147,8 +149,8 @@ func (p *VolatileProvider) Read(id string) (Session, error) {
 }
 
 func (p *VolatileProvider) Update(id string) error {
-	p.Mu.Lock()
-	defer p.Mu.Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	if elem, ok := p.sessions[id]; ok {
 		elem.Value.(*Sess).Last = time.Now()
 		p.list.MoveToFront(elem)
@@ -157,6 +159,8 @@ func (p *VolatileProvider) Update(id string) error {
 }
 
 func (p *VolatileProvider) Destroy(id string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	if elem, ok := p.sessions[id]; ok {
 		delete(p.sessions, id)
 		p.list.Remove(elem)
@@ -164,8 +168,8 @@ func (p *VolatileProvider) Destroy(id string) {
 }
 
 func (p *VolatileProvider) GC(maxLife int64) {
-	p.Mu.Lock()
-	defer p.Mu.Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
 	for elem := p.list.Back(); elem != nil; elem = p.list.Back() {
 		if (elem.Value.(*Sess).Last.Unix() + maxLife) < time.Now().Unix() {

@@ -35,10 +35,7 @@ func newCluster(su *sysUtils) *cluster {
 
 func (cl *cluster) Configure(linkage bool) {
 	p := sessmgr.NewVolatileProvider()
-	sm, err := sessmgr.New("cook-e", 45, p)
-	if err != nil {
-		panic(err.Error())
-	}
+	sm := sessmgr.New("cook-e", 45, p)
 
 	n := &node{
 		su: cl.su, sm: sm,
@@ -60,9 +57,10 @@ func (n *node) setupMux() *mixmux.TreeMux {
 	m.Post(path.Join("/"+n.su.conf.FormPathPrefix+"/*x"), c.EndFn(n.postHandler))
 
 	mAdm := m.Group("/" + n.su.conf.AdminPathPrefix)
-	mAdm.Get("/", sc.EndFn(n.adminGetHandler))
+	mAdm.Get("/", sc.EndFn(n.adminHandler))
 	mAdm.Get("/login", c.EndFn(n.adminLoginGetHandler))
 	mAdm.Post("/login", c.EndFn(n.adminLoginPostHandler))
+	mAdm.Get("/test", c.EndFn(n.adminTestHandler))
 	mAdm.Get("/*x", c.EndFn(n.NotFound))
 	return m
 }
@@ -109,8 +107,8 @@ func (n *node) log(next chain.Handler) chain.Handler {
 func (n *node) auth(next chain.Handler) chain.Handler {
 	return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		s := n.sm.SessStart(w, r)
-		usr := s.Get("user")
-		if usr == nil || usr.(string) == "" {
+		usr, ok := s.Get("user")
+		if !ok || usr.(string) == "" {
 			http.Redirect(w, r, "/"+n.su.conf.AdminPathPrefix+"/login", 302)
 			return
 		}

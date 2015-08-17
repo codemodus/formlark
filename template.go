@@ -10,6 +10,7 @@ import (
 type Page struct {
 	AppName  string
 	URLLogin string
+	Misc     string
 }
 
 func NewPage() *Page {
