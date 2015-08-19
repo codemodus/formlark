@@ -10,12 +10,6 @@ import (
 	"time"
 )
 
-func (n *node) newPage() *Page {
-	p := NewPage()
-	p.URLLogin = "/" + n.su.conf.AdminPathPrefix + "/login"
-	return p
-}
-
 type user struct {
 	*boltItem
 	*dtUser

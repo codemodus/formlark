@@ -12,9 +12,14 @@ import (
 	"time"
 )
 
+func unsetCookie(w http.ResponseWriter, name string) {
+	c := &http.Cookie{Name: name, MaxAge: -1, Expires: time.Unix(1, 0)}
+	http.SetCookie(w, c)
+}
+
 type Session interface {
 	Set(string, interface{}) error
-	Get(string) (interface{}, bool)
+	Get(string) interface{}
 	Unset(string)
 	SessID() string
 }
@@ -23,7 +28,7 @@ type Provider interface {
 	Create(string) (Session, error)
 	Read(string) (Session, error)
 	Update(string) error
-	Destroy(string)
+	Destroy(string) error
 	GC(int64)
 	// TODO: GC and persistent providers.
 }
@@ -50,33 +55,39 @@ func (m *Manager) genSessID() string {
 	return base64.URLEncoding.EncodeToString(b)
 }
 
-func (m *Manager) SessStart(w http.ResponseWriter, r *http.Request) (s Session) {
+func (m *Manager) SessStart(w http.ResponseWriter, r *http.Request) (s Session, err error) {
 	c, err := r.Cookie(m.name)
-	if err == nil && c.Value != "" {
-		id, _ := url.QueryUnescape(c.Value)
-		s, err = m.prov.Read(id)
-		if err == nil {
-			return s
+	if err == nil {
+		id, err := url.QueryUnescape(c.Value)
+		if err == nil && id != "" {
+			s, err = m.prov.Read(id)
+			if err == nil {
+				return s, nil
+			}
 		}
+		unsetCookie(w, m.name)
 	}
 
 	id := m.genSessID()
 	if s, err = m.prov.Create(id); err != nil {
-		panic("how could you do this?")
+		return nil, err
 	}
 	c = &http.Cookie{Name: m.name, Value: url.QueryEscape(id), Path: "/", HttpOnly: true, MaxAge: int(m.maxLife)}
 	http.SetCookie(w, c)
-	return s
+	return s, nil
 }
 
 func (m *Manager) SessStop(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie(m.name)
-	if err == nil && c.Value != "" {
-		id, _ := url.QueryUnescape(c.Value)
-		m.prov.Destroy(id)
-		c = &http.Cookie{Name: m.name, MaxAge: -1, Expires: time.Unix(1, 0)}
-		http.SetCookie(w, c)
+	if err != nil {
+		return
 	}
+	unsetCookie(w, m.name)
+	id, err := url.QueryUnescape(c.Value)
+	if err != nil || id != "" {
+		return
+	}
+	m.prov.Destroy(id)
 }
 
 type Sess struct {
@@ -100,12 +111,12 @@ func (s *Sess) Set(key string, val interface{}) error {
 	return nil
 }
 
-func (s *Sess) Get(key string) (interface{}, bool) {
+func (s *Sess) Get(key string) interface{} {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	s.prov.Update(s.ID)
-	v, ok := s.Val[key]
-	return v, ok
+	v, _ := s.Val[key]
+	return v
 }
 
 func (s *Sess) Unset(key string) {
@@ -130,6 +141,7 @@ func NewVolatileProvider() *VolatileProvider {
 	return &VolatileProvider{sessions: s, list: list.New()}
 }
 
+// TODO: typed errors
 func (p *VolatileProvider) Create(id string) (Session, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -158,13 +170,14 @@ func (p *VolatileProvider) Update(id string) error {
 	return nil
 }
 
-func (p *VolatileProvider) Destroy(id string) {
+func (p *VolatileProvider) Destroy(id string) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if elem, ok := p.sessions[id]; ok {
 		delete(p.sessions, id)
 		p.list.Remove(elem)
 	}
+	return nil
 }
 
 func (p *VolatileProvider) GC(maxLife int64) {

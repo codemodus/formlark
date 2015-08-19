@@ -2,10 +2,8 @@ package main
 
 import (
 	"html/template"
-	"time"
 
 	"github.com/codemodus/loggers"
-	"golang.org/x/net/context"
 )
 
 const (
@@ -32,34 +30,4 @@ type sysUtils struct {
 	ds   *dataStores
 	logs *loggers.Loggers
 	ts   *template.Template
-}
-
-type rCtxCmn int
-
-const (
-	keyPostHandlerFuncCtx rCtxCmn = iota
-	keyReqStart
-)
-
-func SetReqStart(ctx context.Context, t time.Time) context.Context {
-	return context.WithValue(ctx, keyReqStart, t)
-}
-
-func GetReqStart(ctx context.Context) (time.Time, bool) {
-	t, ok := ctx.Value(keyReqStart).(time.Time)
-	return t, ok
-}
-
-// InitPHFC takes a context.Context and places a pointer to it within itself.
-// This is useful for carrying data into the post ServeHTTPContext area of
-// Handler wraps.  PHFC stands for Post HandlerFunc Context.
-func InitPHFC(ctx context.Context) context.Context {
-	return context.WithValue(ctx, keyPostHandlerFuncCtx, &ctx)
-}
-
-// GetPHFC takes a context.Context and returns a pointer to the context.Context
-// set in InitPHFC.
-func GetPHFC(ctx context.Context) (*context.Context, bool) {
-	cx, ok := ctx.Value(keyPostHandlerFuncCtx).(*context.Context)
-	return cx, ok
 }

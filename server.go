@@ -60,7 +60,7 @@ func (n *node) setupMux() *mixmux.TreeMux {
 	mAdm.Get("/", sc.EndFn(n.adminHandler))
 	mAdm.Get("/login", c.EndFn(n.adminLoginGetHandler))
 	mAdm.Post("/login", c.EndFn(n.adminLoginPostHandler))
-	mAdm.Get("/test", c.EndFn(n.adminTestHandler))
+	mAdm.Get("/test", sc.EndFn(n.adminTestHandler))
 	mAdm.Get("/*x", c.EndFn(n.NotFound))
 	return m
 }
@@ -79,8 +79,8 @@ func (n *node) reco(next chain.Handler) chain.Handler {
 
 func (n *node) initReq(next chain.Handler) chain.Handler {
 	return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		ctx = SetReqStart(ctx, time.Now())
-		ctx = InitPHFC(ctx)
+		ctx = n.SetReqStart(ctx, time.Now())
+		ctx = n.InitPHFC(ctx)
 		next.ServeHTTPContext(ctx, w, r)
 	})
 }
@@ -90,7 +90,7 @@ func (n *node) log(next chain.Handler) chain.Handler {
 		next.ServeHTTPContext(ctx, w, r)
 
 		t2 := time.Now()
-		t1, _ := GetReqStart(ctx)
+		t1, _ := n.GetReqStart(ctx)
 		dur := t2.Sub(t1)
 		str := fmt.Sprintf(loggers.CLF, r.RemoteAddr, r.Host,
 			r.Method, r.URL.String(), dur)
@@ -106,9 +106,13 @@ func (n *node) log(next chain.Handler) chain.Handler {
 
 func (n *node) auth(next chain.Handler) chain.Handler {
 	return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		s := n.sm.SessStart(w, r)
-		usr, ok := s.Get("user")
-		if !ok || usr.(string) == "" {
+		s, err := n.sm.SessStart(w, r)
+		if err != nil {
+			fmt.Println("ouch")
+			// TODO
+		}
+		usr, ok := s.Get("user").(string)
+		if !ok || usr == "" {
 			http.Redirect(w, r, "/"+n.su.conf.AdminPathPrefix+"/login", 302)
 			return
 		}
@@ -120,6 +124,7 @@ func (n *node) auth(next chain.Handler) chain.Handler {
 			return
 		}
 
+		ctx = n.SetSess(ctx, s)
 		next.ServeHTTPContext(ctx, w, r)
 	})
 }

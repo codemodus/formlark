@@ -9,13 +9,16 @@ import (
 )
 
 func (n *node) adminHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	s := n.sm.SessStart(w, r)
-	usr, ok := s.Get("user")
+	s, ok := n.GetSess(ctx)
+	if !ok {
+		http.Error(w, "session not found in context", 500)
+		return
+	}
+	usr, ok := s.Get("user").(string)
 	if !ok {
 		http.Error(w, "bad session var", 500)
 		return
 	}
-	u := usr.(string)
 	s.Set("test", time.Now().Unix())
 
 	d := struct {
@@ -23,31 +26,24 @@ func (n *node) adminHandler(ctx context.Context, w http.ResponseWriter, r *http.
 		User string
 	}{
 		n.newPage(),
-		u,
+		usr,
 	}
-	err := n.su.ts.ExecuteTemplate(w, "admin/index.html", d)
-	if err != nil {
-		http.Error(w, "template failed - please contact the site admin", 500)
-		return
-	}
-	return
+	n.ExecuteTemplate(w, "admin/index.html", d)
 }
 
 func (n *node) adminLoginGetHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	s := n.sm.SessStart(w, r)
-	usr, ok := s.Get("user")
-	if ok && usr.(string) != "" {
+	s, err := n.sm.SessStart(w, r)
+	if err != nil {
+		//
+	}
+	usr, ok := s.Get("user").(string)
+	if ok && usr != "" {
 		http.Redirect(w, r, "/"+n.su.conf.AdminPathPrefix, 302)
 		return
 	}
 
 	p := n.newPage()
-	err := n.su.ts.ExecuteTemplate(w, "admin/login.html", p)
-	if err != nil {
-		http.Error(w, "template failed - please contact the site admin", 500)
-		return
-	}
-	return
+	n.ExecuteTemplate(w, "admin/login.html", p)
 }
 
 func (n *node) adminLoginPostHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
@@ -58,7 +54,10 @@ func (n *node) adminLoginPostHandler(ctx context.Context, w http.ResponseWriter,
 	usr := r.Form.Get("user")
 	pass := r.Form.Get("pass")
 	if usr == n.su.conf.AdminUser && pass == n.su.conf.AdminPass {
-		s := n.sm.SessStart(w, r)
+		s, err := n.sm.SessStart(w, r)
+		if err != nil {
+			// TODO
+		}
 		s.Set("user", usr)
 		s.Set("test", time.Now().Unix())
 
@@ -67,12 +66,15 @@ func (n *node) adminLoginPostHandler(ctx context.Context, w http.ResponseWriter,
 	}
 
 	http.Error(w, "unauthorized", 401)
-	return
 }
 
 func (n *node) adminTestHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	s := n.sm.SessStart(w, r)
-	t, ok := s.Get("test")
+	s, ok := n.GetSess(ctx)
+	if !ok {
+		http.Error(w, "session not found in context", 500)
+		return
+	}
+	t, ok := s.Get("test").(int64)
 	if !ok {
 		http.Error(w, "bad session var", 500)
 		return
@@ -83,12 +85,7 @@ func (n *node) adminTestHandler(ctx context.Context, w http.ResponseWriter, r *h
 		Misc string
 	}{
 		n.newPage(),
-		strconv.FormatInt(t.(int64), 10),
+		strconv.FormatInt(t, 10),
 	}
-	err := n.su.ts.ExecuteTemplate(w, "admin/test.html", d)
-	if err != nil {
-		http.Error(w, "template failed - please contact the site admin", 500)
-		return
-	}
-	return
+	n.ExecuteTemplate(w, "admin/test.html", d)
 }
