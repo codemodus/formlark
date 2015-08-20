@@ -55,7 +55,8 @@ func main() {
 		os.Exit(EX_CANTCREAT)
 	}
 
-	su.ts = getTemplates()
+	su.ts = NewTemplates("", "")
+	su.ts.ParseDir("templates")
 
 	cl := newCluster(su)
 	cl.Configure(false)

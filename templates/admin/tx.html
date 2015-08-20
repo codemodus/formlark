@@ -1,0 +1,11 @@
+{{ include "/base_admin.html" }}
+{{ include "/base_admin_head.html" }}
+
+{{ define "body" }}
+  <section class="container">
+    <div class="login">
+        <h1>{{ .AppName }} Tx Administration</h1>
+        <p>Welcome, {{ .User }}</p>
+    </div>
+  </section>
+{{ end }}

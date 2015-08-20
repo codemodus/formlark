@@ -1,8 +1,6 @@
 package main
 
 import (
-	"html/template"
-
 	"github.com/codemodus/loggers"
 )
 
@@ -29,5 +27,5 @@ type sysUtils struct {
 	conf *conf
 	ds   *dataStores
 	logs *loggers.Loggers
-	ts   *template.Template
+	ts   *Templates
 }

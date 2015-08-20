@@ -28,7 +28,7 @@ func (n *node) adminHandler(ctx context.Context, w http.ResponseWriter, r *http.
 		n.newPage(),
 		usr,
 	}
-	n.ExecuteTemplate(w, "admin/index.html", d)
+	n.ExecuteTemplate(w, "admin/tx.html", d)
 }
 
 func (n *node) adminLoginGetHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
