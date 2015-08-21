@@ -28,7 +28,7 @@ func (n *node) adminHandler(ctx context.Context, w http.ResponseWriter, r *http.
 		n.newPage(),
 		usr,
 	}
-	n.ExecuteTemplate(w, "admin/tx.html", d)
+	n.ExecuteTemplate(w, "admin", d)
 }
 
 func (n *node) adminLoginGetHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
@@ -42,8 +42,8 @@ func (n *node) adminLoginGetHandler(ctx context.Context, w http.ResponseWriter, 
 		return
 	}
 
-	p := n.newPage()
-	n.ExecuteTemplate(w, "admin/login.html", p)
+	d := n.newPage()
+	n.ExecuteTemplate(w, "admin/login", d)
 }
 
 func (n *node) adminLoginPostHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
@@ -87,5 +87,5 @@ func (n *node) adminTestHandler(ctx context.Context, w http.ResponseWriter, r *h
 		n.newPage(),
 		strconv.FormatInt(t, 10),
 	}
-	n.ExecuteTemplate(w, "admin/test.html", d)
+	n.ExecuteTemplate(w, "admin/test", d)
 }

@@ -14,7 +14,7 @@ func (n *node) newPage() *Page {
 
 func (n *node) ExecuteTemplate(w http.ResponseWriter, name string, data interface{}) {
 	b := &bytes.Buffer{}
-	err := n.su.ts.m[name].ExecuteTemplate(b, "", data)
+	err := n.su.ts.ExecuteTemplate(b, name, data)
 	if err != nil {
 		// TODO: Log
 		fmt.Println(err)
