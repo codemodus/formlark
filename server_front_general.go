@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/codemodus/parth"
-
 	"golang.org/x/net/context"
 )
 
@@ -37,7 +36,7 @@ func (n *node) postHandler(ctx context.Context, w http.ResponseWriter, r *http.R
 			return
 		}
 		u.ID = n.getKey()
-		if err = u.validate(); err != nil {
+		if err = u.Validate(); err != nil {
 			http.Error(w, "user data invalid: "+err.Error(), 422)
 			return
 		}
@@ -85,7 +84,7 @@ func (n *node) postHandler(ctx context.Context, w http.ResponseWriter, r *http.R
 		http.Error(w, "cannot process form", 422)
 		return
 	}
-	if err = p.validate(); err != nil {
+	if err = p.Validate(); err != nil {
 		http.Error(w, "post data invalid: "+err.Error(), 422)
 		return
 	}

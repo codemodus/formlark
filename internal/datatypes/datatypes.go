@@ -1,4 +1,4 @@
-package main
+package datatypes
 
 import (
 	"errors"
@@ -8,27 +8,27 @@ import (
 	"time"
 )
 
-type dtConfirm struct {
+type Confirm struct {
 	Forms map[string]string `json:"forms,omitempty"`
 }
 
-func newConfirm() *dtConfirm {
-	return &dtConfirm{Forms: make(map[string]string)}
+func NewConfirm() *Confirm {
+	return &Confirm{Forms: make(map[string]string)}
 }
 
-type dtUser struct {
-	Email   string     `json:"email"`
-	Forms   []string   `json:"forms,omitempty"`
-	Confirm *dtConfirm `json:"confirm,omitempty"`
+type User struct {
+	Email   string   `json:"email"`
+	Forms   []string `json:"forms,omitempty"`
+	Confirm *Confirm `json:"confirm,omitempty"`
 }
 
-func newUser() *dtUser {
-	return &dtUser{
-		Forms: make([]string, 0), Confirm: newConfirm(),
+func NewUser() *User {
+	return &User{
+		Forms: make([]string, 0), Confirm: NewConfirm(),
 	}
 }
 
-func (u *dtUser) validate() error {
+func (u *User) Validate() error {
 	if u.Email == "" {
 		return errors.New("email must not be blank")
 	}
@@ -45,7 +45,7 @@ func (u *dtUser) validate() error {
 	return nil
 }
 
-type dtPost struct {
+type Post struct {
 	Date    time.Time           `json:"date"`
 	Referer *url.URL            `json:"url"`
 	Replyto string              `json:"replyto"`
@@ -55,11 +55,11 @@ type dtPost struct {
 	Content map[string][]string `json:"content"`
 }
 
-func newPost() *dtPost {
-	return &dtPost{CC: make([]string, 0), Content: make(map[string][]string)}
+func NewPost() *Post {
+	return &Post{CC: make([]string, 0), Content: make(map[string][]string)}
 }
 
-func (p *dtPost) validate() error {
+func (p *Post) Validate() error {
 	if p.Replyto != "" {
 		t := ""
 		if !strings.Contains(p.Replyto, "<") || !strings.Contains(p.Replyto, ">") {

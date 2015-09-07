@@ -8,16 +8,18 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/codemodus/formlark/internal/datatypes"
 )
 
 type user struct {
 	*boltItem
-	*dtUser
+	*datatypes.User
 }
 
 func (n *node) newUser(i string) *user {
 	u := &user{
-		dtUser: newUser(),
+		User: datatypes.NewUser(),
 		boltItem: &boltItem{
 			DS: n.su.ds,
 		},
@@ -98,12 +100,12 @@ func (u *user) set() error {
 }
 
 type post struct {
-	*dtPost
+	*datatypes.Post
 }
 
 func (n *node) newPost() *post {
 	return &post{
-		dtPost: newPost(),
+		Post: datatypes.NewPost(),
 	}
 }
 
