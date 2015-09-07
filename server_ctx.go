@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/codemodus/formlark/internal/sessmgr"
-
 	"golang.org/x/net/context"
 )
 
