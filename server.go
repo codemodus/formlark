@@ -54,6 +54,8 @@ func (n *node) setupMux() *mixmux.TreeMux {
 	sc := c.Append(n.auth)
 	m := mixmux.NewTreeMux()
 
+	m.Get("/assets/public/*x", c.EndFn(n.assetsHandler))
+	m.Get("/assets/protected/*x", sc.EndFn(n.assetsHandler))
 	m.Post(path.Join("/"+n.su.conf.FormPathPrefix+"/*x"), c.EndFn(n.postHandler))
 
 	mAdm := m.Group("/" + n.su.conf.AdminPathPrefix)
@@ -131,7 +133,6 @@ func (n *node) auth(next chain.Handler) chain.Handler {
 
 func (n *node) NotFound(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
-	return
 }
 
 func (cl *cluster) signal(sm *sigmon.SignalMonitor) {
@@ -144,4 +145,12 @@ func (cl *cluster) signal(sm *sigmon.SignalMonitor) {
 	case sigmon.SIGUSR1, sigmon.SIGUSR2:
 		//
 	}
+}
+
+func (n *node) assetsHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	p := r.URL.Path
+	if p[0] == '/' {
+		p = p[1:]
+	}
+	http.ServeFile(w, r, p)
 }

@@ -12,16 +12,6 @@ import (
 	"strings"
 )
 
-type Page struct {
-	AppName  string
-	URLLogin string
-	Misc     string
-}
-
-func NewPage() *Page {
-	return &Page{AppName: "Formlark", URLLogin: "/admin/login"}
-}
-
 type Templates struct {
 	m          map[string]*template.Template
 	delimLeft  string

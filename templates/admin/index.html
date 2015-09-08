@@ -1,7 +1,11 @@
-{{ include "base.tmpl.html" }}
+{{ include "/base.tmpl.html" }}
 {{ include "head.tmpl.html" }}
+{{ include "menu_main.tmpl.html" }}
 
-{{ define "body" }}
+{{ define "content" }}
+  <section class="container">
+      {{ template "menu_main" . }}
+  </section>
   <section class="container">
     <div class="login">
         <h1>{{ .AppName }} Administration</h1>

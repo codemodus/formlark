@@ -43,6 +43,7 @@ func (n *node) adminLoginGetHandler(ctx context.Context, w http.ResponseWriter, 
 	}
 
 	d := n.newPage()
+	d.NavDrawer.NavCommonItems[0].Name = "TATA!!!"
 	n.ExecuteTemplate(w, "admin/login", d)
 }
 

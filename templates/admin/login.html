@@ -1,21 +1,32 @@
-{{ include "base.tmpl.html" }}
-{{ include "head.tmpl.html" }}
+{{ include "/base.tmpl.html" }}
+{{ include "/head.tmpl.html" }}
 
-{{ define "body" }}
-<section class="container">
-    <div class="login">
+{{ define "content" }}
+<div class="mdl-grid">
+    <div class="mdl-cell mdl-cell--4-col mdl-cell--1-col-tablet mdl-cell--0-col-phone"></div>
+    <div class="mdl-cell mdl-cell--4-col mdl-cell--6-col-tablet mdl-cell--12-col-phone">
         <h1>{{ .AppName }} Login</h1>
         <form method="post" action="{{ .URLLogin }}">
-            <p><input type="text" name="user" value="" placeholder="Username"></p>
-            <p><input type="password" name="pass" value="" placeholder="Password"></p>
+            <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                <input class="mdl-textfield__input" type="text" id="user" name="user">
+                <label class="mdl-textfield__label" for="user">Username:</label>
+                </div>
+            <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                <input class="mdl-textfield__input" type="password" id="pass" name="pass">
+                <label class="mdl-textfield__label" for="pass">Password:</label>
+            </div>
             <p class="remember_me">
                 <label>
                     <input type="checkbox" name="remember_me" id="remember_me">
                     Remember me on this computer
                 </label>
             </p>
-            <p class="submit"><input type="submit" name="commit" value="Login"></p>
+            <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent"
+            type="submit">
+                Login
+            </button>
         </form>
     </div>
-</section>
+    <div class="mdl-cell mdl-cell--4-col mdl-cell--0-col-tablet mdl-cell--0-col-phone"></div>
+</div>
 {{ end }}

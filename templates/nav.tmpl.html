@@ -1,0 +1,8 @@
+{{ define "nav" }}
+    {{ range .NavCommonItems }}
+        <a class="mdl-navigation__link" href="{{ .HRef }}">{{ .Name }}</a>
+    {{ end }}
+    {{ range .NavSpecialItems }}
+        <a class="mdl-navigation__link" href="{{ .HRef }}">{{ .Name }}</a>
+    {{ end }}
+{{ end }}
