@@ -10,19 +10,21 @@
             <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
                 <input class="mdl-textfield__input" type="text" id="user" name="user">
                 <label class="mdl-textfield__label" for="user">Username:</label>
-                </div>
+            </div>
+
             <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
                 <input class="mdl-textfield__input" type="password" id="pass" name="pass">
                 <label class="mdl-textfield__label" for="pass">Password:</label>
             </div>
-            <p class="remember_me">
-                <label>
-                    <input type="checkbox" name="remember_me" id="remember_me">
-                    Remember me on this computer
-                </label>
-            </p>
-            <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent"
-            type="submit">
+
+            <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="reme">
+                <input type="checkbox" id="reme" class="mdl-checkbox__input" />
+                <span class="mdl-checkbox__label">Remember me.</span>
+            </label>
+
+            <br><br>
+
+            <button type="submit" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">
                 Login
             </button>
         </form>
