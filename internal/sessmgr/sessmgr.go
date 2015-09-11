@@ -84,7 +84,7 @@ func (m *Manager) SessStop(w http.ResponseWriter, r *http.Request) {
 	}
 	unsetCookie(w, m.name)
 	id, err := url.QueryUnescape(c.Value)
-	if err != nil || id != "" {
+	if err != nil || id == "" {
 		return
 	}
 	m.prov.Destroy(id)

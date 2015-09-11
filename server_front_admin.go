@@ -62,6 +62,12 @@ func (n *node) adminLoginPostHandler(ctx context.Context, w http.ResponseWriter,
 		s.Set("user", usr)
 		s.Set("test", time.Now().Unix())
 
+		p, ok := s.Get("prevReq").(string)
+		if ok && p != "" {
+			http.Redirect(w, r, p, 302)
+			return
+		}
+
 		http.Redirect(w, r, "/"+n.su.conf.AdminPathPrefix, 303)
 		return
 	}

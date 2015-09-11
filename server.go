@@ -51,19 +51,25 @@ func (cl *cluster) Configure(linkage bool) {
 
 func (n *node) setupMux() *mixmux.TreeMux {
 	c := chain.New(n.reco, n.initReq, n.log, chain.Convert(n.Node.Wedge))
-	sc := c.Append(n.auth)
+	s := c.Append(n.sess)
 	m := mixmux.NewTreeMux()
 
+	m.Get("/logout", s.EndFn(n.NotFound))
+
 	m.Get("/assets/public/*x", c.EndFn(n.assetsHandler))
-	m.Get("/assets/protected/*x", sc.EndFn(n.assetsHandler))
+	m.Get("/assets/protected/*x", s.EndFn(n.assetsHandler))
+
 	m.Post(path.Join("/"+n.su.conf.FormPathPrefix+"/*x"), c.EndFn(n.postHandler))
 
-	mAdm := m.Group("/" + n.su.conf.AdminPathPrefix)
-	mAdm.Get("/", sc.EndFn(n.adminHandler))
-	mAdm.Get("/login", c.EndFn(n.adminLoginGetHandler))
-	mAdm.Post("/login", c.EndFn(n.adminLoginPostHandler))
-	mAdm.Get("/test", sc.EndFn(n.adminTestHandler))
-	mAdm.Get("/*x", c.EndFn(n.NotFound))
+	mA := m.Group("/" + n.su.conf.AdminPathPrefix)
+	mA.Get("/", s.EndFn(n.adminHandler))
+	mA.Get("/login", c.EndFn(n.adminLoginGetHandler))
+	mA.Post("/login", c.EndFn(n.adminLoginPostHandler))
+	mA.Get("/logout", s.EndFn(n.NotFound))
+
+	mA.Get("/test", s.EndFn(n.adminTestHandler))
+
+	mA.Get("/*x", c.EndFn(n.NotFound))
 	return m
 }
 
@@ -106,22 +112,23 @@ func (n *node) log(next chain.Handler) chain.Handler {
 	})
 }
 
-func (n *node) auth(next chain.Handler) chain.Handler {
+func (n *node) sess(next chain.Handler) chain.Handler {
 	return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		s, err := n.sm.SessStart(w, r)
 		if err != nil {
 			fmt.Println("ouch")
 			// TODO
 		}
-		usr, ok := s.Get("user").(string)
-		if !ok || usr == "" {
+
+		if r.URL.Path[len(r.URL.Path)-7:] == "/logout" {
+			n.sm.SessStop(w, r)
 			http.Redirect(w, r, "/"+n.su.conf.AdminPathPrefix+"/login", 302)
 			return
 		}
 
-		out := r.URL.Query().Get("logout")
-		if out != "" {
-			n.sm.SessStop(w, r)
+		usr, ok := s.Get("user").(string)
+		if !ok || usr == "" {
+			s.Set("prevReq", r.URL.Path)
 			http.Redirect(w, r, "/"+n.su.conf.AdminPathPrefix+"/login", 302)
 			return
 		}
