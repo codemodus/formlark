@@ -22,10 +22,10 @@ func (n *node) adminHandler(ctx context.Context, w http.ResponseWriter, r *http.
 	s.Set("test", time.Now().Unix())
 
 	d := struct {
-		*Page
+		*PageAdmin
 		User string
 	}{
-		n.newPage(),
+		n.newPageAdmin(),
 		usr,
 	}
 	n.ExecuteTemplate(w, "admin", d)
@@ -42,7 +42,8 @@ func (n *node) adminLoginGetHandler(ctx context.Context, w http.ResponseWriter, 
 		return
 	}
 
-	d := n.newPage()
+	d := n.newPagePublic()
+	d.URLLogin = "/" + n.su.conf.AdminPathPrefix + "/login"
 	d.NavDrawer.NavCommonItems[0].Name = "TATA!!!"
 	n.ExecuteTemplate(w, "admin/login", d)
 }
@@ -88,10 +89,10 @@ func (n *node) adminTestHandler(ctx context.Context, w http.ResponseWriter, r *h
 	}
 
 	d := struct {
-		*Page
+		*PageAdmin
 		Misc string
 	}{
-		n.newPage(),
+		n.newPageAdmin(),
 		strconv.FormatInt(t, 10),
 	}
 	n.ExecuteTemplate(w, "admin/test", d)
