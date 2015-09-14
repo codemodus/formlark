@@ -12,99 +12,13 @@ import (
 	"golang.org/x/net/context"
 )
 
-func (n *node) loginGetHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	s, err := n.sm.SessStart(w, r)
-	if err != nil {
-		//
-	}
-	usr, ok := s.Get("user").(string)
-	if ok && usr != "" {
-		http.Redirect(w, r, "/overview", 302)
-		return
-	}
-
-	d := n.newPagePublic()
-	d.PageTitle = "Login"
-	n.ExecuteTemplate(w, "login", d)
-}
-
-func (n *node) loginPostHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "cannot parse form", 422)
-		return
-	}
-	usr := r.Form.Get("user")
-	pass := r.Form.Get("pass")
-	if usr == n.su.conf.AdminUser && pass == n.su.conf.AdminPass {
-		s, err := n.sm.SessStart(w, r)
-		if err != nil {
-			// TODO
-		}
-		s.Set("user", usr)
-		s.Set("test", time.Now().Unix())
-
-		p, ok := s.Get("prevReq").(string)
-		if ok && p != "" {
-			http.Redirect(w, r, p, 302)
-			return
-		}
-
-		http.Redirect(w, r, "/overview", 303)
-		return
-	}
-
-	http.Error(w, "unauthorized", 401)
-}
-
-func (n *node) overviewHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	s, ok := n.GetSess(ctx)
-	if !ok {
-		http.Error(w, "session not found in context", 500)
-		return
-	}
-	usr, ok := s.Get("user").(string)
-	if !ok {
-		http.Error(w, "bad session var", 500)
-		return
-	}
-	s.Set("test", time.Now().Unix())
-
-	d := struct {
-		*PagePublic
-		User string
-	}{
-		n.newPagePublic(),
-		usr,
-	}
-	d.PageTitle = "Overview"
+func (n *node) anonIndexHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	d := n.newPageAnon()
+	d.PageTitle = "Home"
 	n.ExecuteTemplate(w, "index", d)
 }
 
-func (n *node) settingsHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	s, ok := n.GetSess(ctx)
-	if !ok {
-		http.Error(w, "session not found in context", 500)
-		return
-	}
-	usr, ok := s.Get("user").(string)
-	if !ok {
-		http.Error(w, "bad session var", 500)
-		return
-	}
-	s.Set("test", time.Now().Unix())
-
-	d := struct {
-		*PagePublic
-		User string
-	}{
-		n.newPagePublic(),
-		usr,
-	}
-	d.PageTitle = "Settings"
-	n.ExecuteTemplate(w, "index", d)
-}
-
-func (n *node) postHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (n *node) anonPostHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	rf, err := n.getReferer(r.Referer())
 	if err != nil {
 		http.Error(w, "referer must be parsable", 400)

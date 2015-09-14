@@ -19,7 +19,7 @@ func (n *node) adminLoginGetHandler(ctx context.Context, w http.ResponseWriter, 
 		return
 	}
 
-	d := n.newPagePublic()
+	d := n.newPageAuthed()
 	d.URLLogin = "/" + n.su.conf.AdminPathPrefix + "/login"
 	d.PageTitle = "Login"
 	n.ExecuteTemplate(w, "admin/login", d)

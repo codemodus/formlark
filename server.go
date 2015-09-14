@@ -54,17 +54,18 @@ func (n *node) setupMux() *mixmux.TreeMux {
 	s := c.Append(n.sess)
 	m := mixmux.NewTreeMux()
 
-	m.Get("/login", c.EndFn(n.loginGetHandler))
-	m.Post("/login", c.EndFn(n.loginPostHandler))
+	m.Get("/", c.EndFn(n.anonIndexHandler))
+	m.Get("/login", c.EndFn(n.authedLoginGetHandler))
+	m.Post("/login", c.EndFn(n.authedLoginPostHandler))
 	m.Get("/logout", s.EndFn(n.NotFound))
 
-	m.Get("/overview", s.EndFn(n.overviewHandler))
-	m.Get("/settings", s.EndFn(n.settingsHandler))
+	m.Get("/overview", s.EndFn(n.authedOverviewHandler))
+	m.Get("/settings", s.EndFn(n.authedSettingsHandler))
 
 	m.Get("/assets/public/*x", c.EndFn(n.assetsHandler))
 	m.Get("/assets/protected/*x", s.EndFn(n.assetsHandler))
 
-	m.Post(path.Join("/"+n.su.conf.FormPathPrefix+"/*x"), c.EndFn(n.postHandler))
+	m.Post(path.Join("/"+n.su.conf.FormPathPrefix+"/*x"), c.EndFn(n.anonPostHandler))
 
 	mA := m.Group("/" + n.su.conf.AdminPathPrefix)
 	mA.Get("/", s.EndFn(n.adminOverviewHandler))

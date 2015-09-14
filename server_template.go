@@ -25,22 +25,43 @@ type Page struct {
 	Misc      string
 }
 
-type PagePublic struct {
+func newPage() *Page {
+	p := &Page{AppName: "Formlark", PageTitle: "Formlark", URLLogin: "/login"}
+	p.NavHeader.NavCommonItems = make([]NavItem, 0, 0)
+	p.NavDrawer.NavCommonItems = make([]NavItem, 0, 0)
+	return p
+}
+
+type PageAnon struct {
 	*Page
 }
 
-func newPage() *Page {
-	return &Page{AppName: "Formlark", PageTitle: "Formlark", URLLogin: "/login"}
-}
-
-func (n *node) newPagePublic() *PagePublic {
+func (n *node) newPageAnon() *PageAnon {
 	p := newPage()
-	p.NavHeader.NavCommonItems = n.newNavCommonItems()
-	p.NavDrawer.NavCommonItems = n.newNavCommonItems()
-	return &PagePublic{p}
+	p.NavHeader.NavCommonItems = n.newNavAnonCommonItems()
+	p.NavDrawer.NavCommonItems = n.newNavAnonCommonItems()
+	return &PageAnon{p}
 }
 
-func (n *node) newNavCommonItems() []NavItem {
+func (n *node) newNavAnonCommonItems() []NavItem {
+	// TODO: Move common items to node field and init within node setup.
+	r := make([]NavItem, 1, 1)
+	r[0] = NavItem{HRef: "/login", Name: "Login"}
+	return r
+}
+
+type PageAuthed struct {
+	*Page
+}
+
+func (n *node) newPageAuthed() *PageAuthed {
+	p := newPage()
+	p.NavHeader.NavCommonItems = n.newNavAuthedCommonItems()
+	p.NavDrawer.NavCommonItems = n.newNavAuthedCommonItems()
+	return &PageAuthed{p}
+}
+
+func (n *node) newNavAuthedCommonItems() []NavItem {
 	// TODO: Move common items to node field and init within node setup.
 	r := make([]NavItem, 3, 3)
 	r[0] = NavItem{HRef: "/overview", Name: "Overview"}
