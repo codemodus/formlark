@@ -8,29 +8,6 @@ import (
 	"golang.org/x/net/context"
 )
 
-func (n *node) adminHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	s, ok := n.GetSess(ctx)
-	if !ok {
-		http.Error(w, "session not found in context", 500)
-		return
-	}
-	usr, ok := s.Get("user").(string)
-	if !ok {
-		http.Error(w, "bad session var", 500)
-		return
-	}
-	s.Set("test", time.Now().Unix())
-
-	d := struct {
-		*PageAdmin
-		User string
-	}{
-		n.newPageAdmin(),
-		usr,
-	}
-	n.ExecuteTemplate(w, "admin", d)
-}
-
 func (n *node) adminLoginGetHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	s, err := n.sm.SessStart(w, r)
 	if err != nil {
@@ -44,7 +21,7 @@ func (n *node) adminLoginGetHandler(ctx context.Context, w http.ResponseWriter, 
 
 	d := n.newPagePublic()
 	d.URLLogin = "/" + n.su.conf.AdminPathPrefix + "/login"
-	d.NavDrawer.NavCommonItems[0].Name = "TATA!!!"
+	d.PageTitle = "Login"
 	n.ExecuteTemplate(w, "admin/login", d)
 }
 
@@ -76,7 +53,31 @@ func (n *node) adminLoginPostHandler(ctx context.Context, w http.ResponseWriter,
 	http.Error(w, "unauthorized", 401)
 }
 
-func (n *node) adminTestHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (n *node) adminOverviewHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	s, ok := n.GetSess(ctx)
+	if !ok {
+		http.Error(w, "session not found in context", 500)
+		return
+	}
+	usr, ok := s.Get("user").(string)
+	if !ok {
+		http.Error(w, "bad session var", 500)
+		return
+	}
+	s.Set("test", time.Now().Unix())
+
+	d := struct {
+		*PageAdmin
+		User string
+	}{
+		n.newPageAdmin(),
+		usr,
+	}
+	d.PageTitle = "Overview"
+	n.ExecuteTemplate(w, "admin", d)
+}
+
+func (n *node) adminUsersHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	s, ok := n.GetSess(ctx)
 	if !ok {
 		http.Error(w, "session not found in context", 500)
@@ -95,5 +96,29 @@ func (n *node) adminTestHandler(ctx context.Context, w http.ResponseWriter, r *h
 		n.newPageAdmin(),
 		strconv.FormatInt(t, 10),
 	}
-	n.ExecuteTemplate(w, "admin/test", d)
+	d.PageTitle = "Users"
+	n.ExecuteTemplate(w, "admin/users", d)
+}
+
+func (n *node) adminSettingsHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	s, ok := n.GetSess(ctx)
+	if !ok {
+		http.Error(w, "session not found in context", 500)
+		return
+	}
+	t, ok := s.Get("test").(int64)
+	if !ok {
+		http.Error(w, "bad session var", 500)
+		return
+	}
+
+	d := struct {
+		*PageAdmin
+		Misc string
+	}{
+		n.newPageAdmin(),
+		strconv.FormatInt(t, 10),
+	}
+	d.PageTitle = "Settings"
+	n.ExecuteTemplate(w, "admin/settings", d)
 }

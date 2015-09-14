@@ -18,6 +18,7 @@ type NavGroup struct {
 
 type Page struct {
 	AppName   string
+	PageTitle string
 	URLLogin  string
 	NavHeader NavGroup
 	NavDrawer NavGroup
@@ -29,7 +30,7 @@ type PagePublic struct {
 }
 
 func newPage() *Page {
-	return &Page{AppName: "Formlark", URLLogin: "/login"}
+	return &Page{AppName: "Formlark", PageTitle: "Formlark", URLLogin: "/login"}
 }
 
 func (n *node) newPagePublic() *PagePublic {
@@ -41,12 +42,10 @@ func (n *node) newPagePublic() *PagePublic {
 
 func (n *node) newNavCommonItems() []NavItem {
 	// TODO: Move common items to node field and init within node setup.
-	r := make([]NavItem, 5, 5)
-	r[0] = NavItem{HRef: "/tada", Name: "Tada!"}
-	r[1] = NavItem{HRef: "/lada", Name: "Lada!"}
-	r[2] = NavItem{HRef: "/mada", Name: "Mada!"}
-	r[3] = NavItem{HRef: "/rada", Name: "Rada!"}
-	r[4] = NavItem{HRef: "/zada", Name: "Zada!"}
+	r := make([]NavItem, 3, 3)
+	r[0] = NavItem{HRef: "/overview", Name: "Overview"}
+	r[1] = NavItem{HRef: "/settings", Name: "Settings"}
+	r[2] = NavItem{HRef: "/logout", Name: "Logout"}
 	return r
 }
 
@@ -64,11 +63,11 @@ func (n *node) newPageAdmin() *PageAdmin {
 
 func (n *node) newNavAdminCommonItems() []NavItem {
 	// TODO: Move common items to node field and init within node setup.
-	r := make([]NavItem, 5, 5)
-	r[0] = NavItem{HRef: "/atada", Name: "aTada!"}
-	r[1] = NavItem{HRef: "/alada", Name: "aLada!"}
-	r[2] = NavItem{HRef: "/amada", Name: "aMada!"}
-	r[3] = NavItem{HRef: "/arada", Name: "aRada!"}
+	r := make([]NavItem, 4, 4)
+	r[0] = NavItem{HRef: "/" + n.su.conf.AdminPathPrefix + "/overview", Name: "Overview"}
+	r[1] = NavItem{HRef: "/" + n.su.conf.AdminPathPrefix + "/users", Name: "Users"}
+	r[2] = NavItem{HRef: "/" + n.su.conf.AdminPathPrefix + "/settings", Name: "Settings"}
+	r[3] = NavItem{HRef: "/" + n.su.conf.AdminPathPrefix + "/logout", Name: "Logout"}
 	return r
 }
 

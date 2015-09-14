@@ -54,7 +54,12 @@ func (n *node) setupMux() *mixmux.TreeMux {
 	s := c.Append(n.sess)
 	m := mixmux.NewTreeMux()
 
+	m.Get("/login", c.EndFn(n.loginGetHandler))
+	m.Post("/login", c.EndFn(n.loginPostHandler))
 	m.Get("/logout", s.EndFn(n.NotFound))
+
+	m.Get("/overview", s.EndFn(n.overviewHandler))
+	m.Get("/settings", s.EndFn(n.settingsHandler))
 
 	m.Get("/assets/public/*x", c.EndFn(n.assetsHandler))
 	m.Get("/assets/protected/*x", s.EndFn(n.assetsHandler))
@@ -62,12 +67,14 @@ func (n *node) setupMux() *mixmux.TreeMux {
 	m.Post(path.Join("/"+n.su.conf.FormPathPrefix+"/*x"), c.EndFn(n.postHandler))
 
 	mA := m.Group("/" + n.su.conf.AdminPathPrefix)
-	mA.Get("/", s.EndFn(n.adminHandler))
+	mA.Get("/", s.EndFn(n.adminOverviewHandler))
 	mA.Get("/login", c.EndFn(n.adminLoginGetHandler))
 	mA.Post("/login", c.EndFn(n.adminLoginPostHandler))
 	mA.Get("/logout", s.EndFn(n.NotFound))
 
-	mA.Get("/test", s.EndFn(n.adminTestHandler))
+	mA.Get("/overview", s.EndFn(n.adminOverviewHandler))
+	mA.Get("/users", s.EndFn(n.adminUsersHandler))
+	mA.Get("/settings", s.EndFn(n.adminSettingsHandler))
 
 	mA.Get("/*x", c.EndFn(n.NotFound))
 	return m
@@ -122,14 +129,22 @@ func (n *node) sess(next chain.Handler) chain.Handler {
 
 		if r.URL.Path[len(r.URL.Path)-7:] == "/logout" {
 			n.sm.SessStop(w, r)
-			http.Redirect(w, r, "/"+n.su.conf.AdminPathPrefix+"/login", 302)
+			if r.URL.Path[1:len(n.su.conf.AdminPathPrefix)+1] == n.su.conf.AdminPathPrefix {
+				http.Redirect(w, r, "/"+n.su.conf.AdminPathPrefix+"/login", 302)
+				return
+			}
+			http.Redirect(w, r, "/login", 302)
 			return
 		}
 
 		usr, ok := s.Get("user").(string)
 		if !ok || usr == "" {
 			s.Set("prevReq", r.URL.Path)
-			http.Redirect(w, r, "/"+n.su.conf.AdminPathPrefix+"/login", 302)
+			if r.URL.Path[1:len(n.su.conf.AdminPathPrefix)+1] == n.su.conf.AdminPathPrefix {
+				http.Redirect(w, r, "/"+n.su.conf.AdminPathPrefix+"/login", 302)
+				return
+			}
+			http.Redirect(w, r, "/login", 302)
 			return
 		}
 
