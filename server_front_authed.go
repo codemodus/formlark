@@ -20,6 +20,7 @@ func (n *node) authedLoginGetHandler(ctx context.Context, w http.ResponseWriter,
 
 	d := n.newPageAnon()
 	d.PageTitle = "Login"
+	d.Footer.ColsDropdownFlag = false
 	n.ExecuteTemplate(w, "login", d)
 }
 

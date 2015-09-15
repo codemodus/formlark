@@ -14,7 +14,7 @@ import (
 
 func (n *node) anonIndexHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	d := n.newPageAnon()
-	d.PageTitle = "Home"
+	d.PageTitle = d.AppName
 	n.ExecuteTemplate(w, "index", d)
 }
 
