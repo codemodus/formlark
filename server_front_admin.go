@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -74,6 +75,13 @@ func (n *node) adminOverviewHandler(ctx context.Context, w http.ResponseWriter, 
 		n.newPageAdmin(),
 		usr,
 	}
+
+	usrs := n.newUsers(5)
+	if err := usrs.get(0); err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(usrs)
+
 	d.PageTitle = "Overview"
 	n.ExecuteTemplate(w, "admin", d)
 }

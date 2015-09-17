@@ -1,14 +1,8 @@
 package main
 
 import (
-	"errors"
-	"hash/fnv"
 	"net/http"
-	"net/url"
-	"strconv"
-	"time"
 
-	"github.com/codemodus/parth"
 	"golang.org/x/net/context"
 )
 
@@ -30,7 +24,8 @@ func (n *node) anonPostHandler(ctx context.Context, w http.ResponseWriter, r *ht
 		return
 	}
 
-	u := n.newUser(seg)
+	u := n.newUser()
+	_ = seg
 	ok, err := u.get()
 	if err != nil {
 		http.Error(w, "cannot access user data in datastore", 500)
@@ -103,41 +98,4 @@ func (n *node) anonPostHandler(ctx context.Context, w http.ResponseWriter, r *ht
 
 	http.Redirect(w, r, p.Next, 303)
 	return
-}
-
-func (n *node) getReferer(r string) (string, error) {
-	ref, err := url.Parse(r)
-	if err != nil || ref == nil {
-		return "", errors.New("error parsing referer: " + err.Error())
-	}
-	return ref.String(), nil
-}
-
-func (n *node) getIndexSegment(s string) (string, error) {
-	si := 0
-	if n.su.conf.FormPathPrefix != "" {
-		si = 1
-	}
-	seg, err := parth.SegmentToString(s, si)
-	if err != nil {
-		return "", err
-	}
-	return seg, nil
-}
-
-func (n *node) getKey() string {
-	t := []byte(strconv.FormatInt(time.Now().UnixNano(), 10))
-	h := fnv.New64a()
-	h.Write(t)
-	s := strconv.FormatUint(h.Sum64(), 10)
-	return s
-}
-
-func (n *node) getConfirmHash() string {
-	t := []byte(strconv.FormatInt(time.Now().UnixNano(), 10))
-	h := fnv.New64a()
-	h.Write(t)
-	s := strconv.FormatUint(h.Sum64(), 10) +
-		"_" + strconv.FormatInt(time.Now().Unix(), 10)
-	return s
 }

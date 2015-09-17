@@ -5,8 +5,10 @@ import (
 	"log"
 	"net/http"
 	"path"
+	"strconv"
 	"time"
 
+	"github.com/boltdb/bolt"
 	"github.com/codemodus/chain"
 	"github.com/codemodus/formlark/internal/sessmgr"
 	"github.com/codemodus/httpcluster"
@@ -76,6 +78,7 @@ func (n *node) setupMux() *mixmux.TreeMux {
 	mA.Get("/overview", s.EndFn(n.adminOverviewHandler))
 	mA.Get("/users", s.EndFn(n.adminUsersHandler))
 	mA.Get("/settings", s.EndFn(n.adminSettingsHandler))
+	mA.Get("/backup", s.EndFn(n.backupHandleFunc))
 
 	mA.Get("/*x", c.EndFn(n.NotFound))
 	return m
@@ -176,4 +179,17 @@ func (n *node) assetsHandler(ctx context.Context, w http.ResponseWriter, r *http
 		p = p[1:]
 	}
 	http.ServeFile(w, r, p)
+}
+
+func (n *node) backupHandleFunc(ctx context.Context, w http.ResponseWriter, req *http.Request) {
+	err := n.su.ds.dcbsRsrcs.DB.View(func(tx *bolt.Tx) error {
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.Header().Set("Content-Disposition", `attachment; filename="my.db"`)
+		w.Header().Set("Content-Length", strconv.Itoa(int(tx.Size())))
+		_, err := tx.WriteTo(w)
+		return err
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }

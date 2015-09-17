@@ -3,10 +3,8 @@ package main
 import (
 	"bytes"
 	"encoding/gob"
-	"encoding/json"
 	"errors"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/codemodus/formlark/internal/datatypes"
@@ -17,84 +15,86 @@ type user struct {
 	*datatypes.User
 }
 
-func (n *node) newUser(i string) *user {
+func (n *node) newUser() *user {
 	u := &user{
 		User: datatypes.NewUser(),
 		boltItem: &boltItem{
-			DS: n.su.ds,
+			BB:  n.su.ds.dcbUsers,
+			BBI: n.su.ds.dcbIndUsers,
 		},
-	}
-
-	if strings.Contains(i, "@") {
-		u.Email = i
-	} else {
-		u.ID = i
 	}
 	return u
 }
 
-func (u *user) getID() (string, error) {
-	var k []byte
-	var err error
+func (u *user) affixID() error {
 	if u.ID != "" {
-		k, err = u.DS.dcbIndUsers.getBytes(u.ID)
-		if err != nil {
-			return "", err
+		if err := u.BB.find(u.ID); err == nil {
+			return nil
 		}
 	}
-	if len(k) == 0 && u.Email != "" {
-		k, err = u.DS.dcbIndUsers.getBytes(u.Email)
+	if u.Email != "" {
+		k, err := u.BBI.getBytes(u.Email)
 		if err != nil {
-			return "", err
+			return err
+		}
+		if len(k) > 0 {
+			u.ID = string(k)
+			return nil
 		}
 	}
-	if len(k) == 0 {
-		return "", errors.New("not found")
-	}
-	return string(k), nil
-}
-
-func (u *user) get() (bool, error) {
-	id, err := u.getID()
-	if err != nil {
-		return false, err
-	}
-
-	b, err := u.DS.dcbUsers.getBytes(id)
-	if len(b) == 0 || err != nil {
-		return false, err
-	}
-	br := bytes.NewReader(b)
-	dec := gob.NewDecoder(br)
-	if err := dec.Decode(u); err != nil {
-		return false, err
-	}
-	return true, nil
+	return errors.New("not found")
 }
 
 func (u *user) set() error {
-	if u.Email == "" {
-		return errors.New("user data incomplete: missing email")
+	err := u.boltItem.set()
+	if err != nil {
+		return err
 	}
-	id, err := u.getID()
+	if err = u.BBI.setBytes(u.Email, []byte(u.ID)); err != nil {
+		return err
+	}
+	return nil
+}
+
+type users struct {
+	BI *boltItem
+	s  []*user
+}
+
+func (n *node) newUsers(count int) *users {
+	u := &users{
+		s: make([]*user, count),
+		BI: &boltItem{
+			BB:  n.su.ds.dcbUsers,
+			BBI: n.su.ds.dcbIndUsers,
+		},
+	}
+	return u
+}
+
+func (us *users) get(start int) error {
+	m, err := us.BI.BB.getManyBytes(start, cap(us.s))
 	if err != nil {
 		return err
 	}
 
-	if err = u.DS.dcbIndUsers.setBytes(u.ID, []byte(id)); err != nil {
-		return err
-	}
-	if err = u.DS.dcbIndUsers.setBytes(u.Email, []byte(id)); err != nil {
-		return err
-	}
-
-	bb := &bytes.Buffer{}
-	enc := gob.NewEncoder(bb)
-	if err := enc.Encode(u); err != nil {
-		return err
-	}
-	if err = u.DS.dcbUsers.set(id, bb); err != nil {
-		return err
+	ct := -1
+	for k, v := range m {
+		ct++
+		br := bytes.NewReader(v)
+		dec := gob.NewDecoder(br)
+		tmp := &user{
+			User: datatypes.NewUser(),
+			boltItem: &boltItem{
+				BB:  us.BI.BB,
+				BBI: us.BI.BB,
+			},
+		}
+		if err := dec.Decode(tmp); err != nil {
+			return err
+		}
+		us.s[ct] = tmp
+		us.s[ct].ID = k
 	}
 	return nil
 }
@@ -146,39 +146,7 @@ func (n *node) newPosts(i string) *posts {
 	return &posts{
 		S: make([]*post, 0),
 		boltItem: &boltItem{
-			ID: i, DS: n.su.ds,
+			ID: i, BB: n.su.ds.dcbPosts,
 		},
 	}
-}
-
-func (ps *posts) get() (bool, error) {
-	id, err := ps.getID()
-	if err != nil {
-		return false, err
-	}
-	b, err := ps.DS.dcbPosts.getBytes(id)
-	if len(b) == 0 || err != nil {
-		return false, err
-	}
-	br := bytes.NewReader(b)
-	dec := gob.NewDecoder(br)
-	if err := dec.Decode(ps); err != nil {
-		return false, err
-	}
-	return true, nil
-}
-
-func (ps *posts) set() error {
-	v, err := json.Marshal(ps)
-	if err != nil {
-		return err
-	}
-	id, err := ps.getID()
-	if err != nil {
-		return err
-	}
-	if err = ps.DS.dcbPosts.setBytes(id, v); err != nil {
-		return err
-	}
-	return nil
 }

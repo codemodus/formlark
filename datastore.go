@@ -27,7 +27,8 @@ type boltDB struct {
 
 type boltBucket struct {
 	name []byte
-	db   *boltDB
+	*bolt.Bucket
+	db *boltDB
 }
 
 func getDataCacheLocal(file string) (d *boltDB, err error) {
@@ -43,10 +44,11 @@ func getDataCacheLocal(file string) (d *boltDB, err error) {
 	return d, nil
 }
 
-func (d *boltDB) getBucket(bucket string) (b *boltBucket, err error) {
+func (d *boltDB) getBucket(bucket string) (bb *boltBucket, err error) {
+	var b *bolt.Bucket
 	name := []byte(bucket)
 	err = d.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists(name)
+		b, err = tx.CreateBucketIfNotExists(name)
 		if err != nil {
 			return err
 		}
@@ -55,8 +57,8 @@ func (d *boltDB) getBucket(bucket string) (b *boltBucket, err error) {
 	if err != nil {
 		return nil, err
 	}
-	b = &boltBucket{name: name, db: d}
-	return b, nil
+	bb = &boltBucket{name: name, Bucket: b, db: d}
+	return bb, nil
 }
 
 func (b *boltBucket) rebuild() error {
@@ -100,6 +102,29 @@ func (b *boltBucket) getBytes(k string) ([]byte, error) {
 	return v, nil
 }
 
+func (b *boltBucket) getManyBytes(start, count int) (map[string][]byte, error) {
+	m := make(map[string][]byte)
+	ct := 0
+	err := b.db.View(func(tx *bolt.Tx) error {
+		err := tx.Bucket(b.name).ForEach(func(k, v []byte) error {
+			if ct >= start && count > 0 {
+				m[string(k)] = v
+				count--
+			}
+			ct++
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return m, err
+	}
+	return m, nil
+}
+
 func (b *boltBucket) set(k string, r io.Reader) error {
 	bb := &bytes.Buffer{}
 	if _, err := bb.ReadFrom(r); err != nil {
@@ -141,34 +166,23 @@ func (b *boltBucket) find(k string) error {
 }
 
 type bolter interface {
-	getID() (string, error)
 	get() (bool, error)
 	set() error
 }
 
 type boltItem struct {
-	DS *dataStores `json:"-"`
-	ID string      `json:"-"`
-}
-
-func (bi *boltItem) getID() (string, error) {
-	if bi.ID != "" {
-		return bi.ID, nil
-	}
-	return "", errors.New("no id")
+	BB  *boltBucket `json:"-"`
+	BBI *boltBucket `json:"-"`
+	ID  string      `json:"-"`
 }
 
 func (bi *boltItem) get() (bool, error) {
-	id, err := bi.getID()
-	if err != nil {
-		return false, err
+	if bi.ID == "" {
+		return false, errors.New("no id")
 	}
-	b, err := bi.DS.dcbUsers.getBytes(id)
-	if err != nil {
+	b, err := bi.BB.getBytes(bi.ID)
+	if len(b) == 0 || err != nil {
 		return false, err
-	}
-	if len(b) == 0 {
-		return false, nil
 	}
 	br := bytes.NewReader(b)
 	dec := gob.NewDecoder(br)
@@ -179,16 +193,16 @@ func (bi *boltItem) get() (bool, error) {
 }
 
 func (bi *boltItem) set() error {
-	id, err := bi.getID()
-	if err != nil {
-		return err
+	if bi.ID == "" {
+		return errors.New("no id")
 	}
+
 	bb := &bytes.Buffer{}
 	enc := gob.NewEncoder(bb)
 	if err := enc.Encode(bi); err != nil {
 		return err
 	}
-	if err = bi.DS.dcbUsers.set(id, bb); err != nil {
+	if err := bi.BB.set(bi.ID, bb); err != nil {
 		return err
 	}
 	return nil
