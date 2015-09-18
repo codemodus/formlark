@@ -56,7 +56,7 @@ func main() {
 	}
 
 	su.ts = NewTemplates("", "")
-	su.ts.ParseDir("templates")
+	su.ts.ParseDir("front/templates")
 
 	cl := newCluster(su)
 	cl.Configure(false)

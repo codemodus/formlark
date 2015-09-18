@@ -176,7 +176,7 @@ func (cl *cluster) signal(sm *sigmon.SignalMonitor) {
 func (n *node) assetsHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	p := r.URL.Path
 	if p[0] == '/' {
-		p = p[1:]
+		p = "front/" + p[1:]
 	}
 	http.ServeFile(w, r, p)
 }
