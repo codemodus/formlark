@@ -37,7 +37,7 @@ func newCluster(su *sysUtils) *cluster {
 
 func (cl *cluster) Configure(linkage bool) {
 	p := sessmgr.NewVolatileProvider()
-	sm := sessmgr.New("cook-e", 45, p)
+	sm := sessmgr.New("cook-e", 90, p)
 
 	n := &node{
 		su: cl.su, sm: sm,
