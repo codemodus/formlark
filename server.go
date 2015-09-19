@@ -56,6 +56,8 @@ func (n *node) setupMux() *mixmux.TreeMux {
 	s := c.Append(n.sess)
 	m := mixmux.NewTreeMux()
 
+	m.Get("/favicon.ico", c.EndFn(n.iconHandler))
+
 	m.Get("/", c.EndFn(n.anonIndexHandler))
 	m.Get("/login", c.EndFn(n.authedLoginGetHandler))
 	m.Post("/login", c.EndFn(n.authedLoginPostHandler))
@@ -64,8 +66,9 @@ func (n *node) setupMux() *mixmux.TreeMux {
 	m.Get("/overview", s.EndFn(n.authedOverviewHandler))
 	m.Get("/settings", s.EndFn(n.authedSettingsHandler))
 
-	m.Get("/assets/public/*x", c.EndFn(n.assetsHandler))
-	m.Get("/assets/protected/*x", s.EndFn(n.assetsHandler))
+	m.Get("/assets/*x", c.EndFn(n.assetsHandler))
+	m.Get("/jspm_packages/*x", c.EndFn(n.assetsFlexHandler))
+	m.Get("/app/*x", s.EndFn(n.assetsFlexHandler))
 
 	m.Post(path.Join("/"+n.su.conf.FormPathPrefix+"/*x"), c.EndFn(n.anonPostHandler))
 
@@ -79,6 +82,10 @@ func (n *node) setupMux() *mixmux.TreeMux {
 	mA.Get("/users", s.EndFn(n.adminUsersHandler))
 	mA.Get("/settings", s.EndFn(n.adminSettingsHandler))
 	mA.Get("/backup", s.EndFn(n.backupHandleFunc))
+	mA.Get("/app/*x", s.EndFn(n.assetsFlexHandler))
+
+	mA.Get("/assets/*x", s.EndFn(n.assetsHandler))
+	mA.Get("/jspm_packages/*x", s.EndFn(n.assetsFlexHandler))
 
 	mA.Get("/*x", c.EndFn(n.NotFound))
 	return m
@@ -173,12 +180,24 @@ func (cl *cluster) signal(sm *sigmon.SignalMonitor) {
 	}
 }
 
+func (n *node) iconHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "front/assets/public/icon/"+r.URL.Path)
+}
+
 func (n *node) assetsHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	p := r.URL.Path
-	if p[0] == '/' {
-		p = "front/" + p[1:]
+	if r.URL.Path[1:len(n.su.conf.AdminPathPrefix)+1] == n.su.conf.AdminPathPrefix {
+		http.ServeFile(w, r, "front/assets/protected/"+r.URL.Path[9+len(n.su.conf.AdminPathPrefix):])
+		return
 	}
-	http.ServeFile(w, r, p)
+	http.ServeFile(w, r, "front/assets/public/"+r.URL.Path[8:])
+}
+
+func (n *node) assetsFlexHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path[1:len(n.su.conf.AdminPathPrefix)+1] == n.su.conf.AdminPathPrefix {
+		http.ServeFile(w, r, "front/assets/"+r.URL.Path[1+len(n.su.conf.AdminPathPrefix):])
+		return
+	}
+	http.ServeFile(w, r, "front/assets/"+r.URL.Path[1:])
 }
 
 func (n *node) backupHandleFunc(ctx context.Context, w http.ResponseWriter, req *http.Request) {

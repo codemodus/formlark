@@ -1,0 +1,31 @@
+{{ define "content" }}
+<div class="mdl-grid" style="min-height: 480px">
+    <div class="mdl-cell mdl-cell--4-col mdl-cell--1-col-tablet mdl-cell--0-col-phone"></div>
+    <div class="mdl-cell mdl-cell--4-col mdl-cell--6-col-tablet mdl-cell--12-col-phone">
+        <h1>{{ .PageTitle }}</h1>
+        <form method="post" action="{{ .URLLogin }}">
+            <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                <input class="mdl-textfield__input" type="text" id="user" name="user">
+                <label class="mdl-textfield__label" for="user">Username:</label>
+            </div>
+
+            <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                <input class="mdl-textfield__input" type="password" id="pass" name="pass">
+                <label class="mdl-textfield__label" for="pass">Password:</label>
+            </div>
+
+            <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="reme">
+                <input type="checkbox" id="reme" class="mdl-checkbox__input" />
+                <span class="mdl-checkbox__label">Remember me.</span>
+            </label>
+
+            <br><br>
+
+            <button type="submit" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">
+                Login
+            </button>
+        </form>
+    </div>
+    <div class="mdl-cell mdl-cell--4-col mdl-cell--0-col-tablet mdl-cell--0-col-phone"></div>
+</div>
+{{ end }}
