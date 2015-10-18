@@ -171,10 +171,9 @@ func (n *node) NotFound(ctx context.Context, w http.ResponseWriter, r *http.Requ
 func (cl *cluster) signal(sm *sigmon.SignalMonitor) {
 	switch sm.Sig() {
 	case sigmon.SIGHUP:
-		cl.Stop()
-		cl.Run()
-	case sigmon.SIGINT, sigmon.SIGTERM:
 		cl.Restart(nil)
+	case sigmon.SIGINT, sigmon.SIGTERM:
+		cl.Stop()
 	case sigmon.SIGUSR1, sigmon.SIGUSR2:
 		//
 	}
