@@ -16,12 +16,12 @@ func (n *node) adminLoginGetHandler(ctx context.Context, w http.ResponseWriter, 
 	}
 	usr, ok := s.Get("user").(string)
 	if ok && usr != "" {
-		http.Redirect(w, r, "/"+n.su.conf.AdminPathPrefix, 302)
+		http.Redirect(w, r, "/"+n.u.conf.AdminPathPrefix, 302)
 		return
 	}
 
 	d := n.newPageAuthed()
-	d.URLLogin = "/" + n.su.conf.AdminPathPrefix + "/login"
+	d.URLLogin = "/" + n.u.conf.AdminPathPrefix + "/login"
 	d.PageTitle = "Login"
 	d.Footer.ColsDropdownFlag = false
 	n.ExecuteTemplate(w, "admin/login", d)
@@ -34,7 +34,7 @@ func (n *node) adminLoginPostHandler(ctx context.Context, w http.ResponseWriter,
 	}
 	usr := r.Form.Get("user")
 	pass := r.Form.Get("pass")
-	if usr == n.su.conf.AdminUser && pass == n.su.conf.AdminPass {
+	if usr == n.u.conf.AdminUser && pass == n.u.conf.AdminPass {
 		s, err := n.sm.SessStart(w, r)
 		if err != nil {
 			// TODO
@@ -48,7 +48,7 @@ func (n *node) adminLoginPostHandler(ctx context.Context, w http.ResponseWriter,
 			return
 		}
 
-		http.Redirect(w, r, "/"+n.su.conf.AdminPathPrefix, 303)
+		http.Redirect(w, r, "/"+n.u.conf.AdminPathPrefix, 303)
 		return
 	}
 

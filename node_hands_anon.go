@@ -51,8 +51,8 @@ func (n *node) anonPostHandler(ctx context.Context, w http.ResponseWriter, r *ht
 	// Check and handle form confirmation status.
 	fConfirm, ok := u.Confirm.Forms[rf]
 	if !ok || fConfirm != "" {
-		if err = n.su.ds.dcbIndCnfrm.find(u.ID); err != nil {
-			if err = n.su.ds.dcbIndCnfrm.setBytes(u.ID, []byte("")); err != nil {
+		if err = n.u.ds.dcbIndCnfrm.find(u.ID); err != nil {
+			if err = n.u.ds.dcbIndCnfrm.setBytes(u.ID, []byte("")); err != nil {
 				http.Error(w, "cannot persist confirmation index to datastore", 500)
 				return
 			}
@@ -62,7 +62,7 @@ func (n *node) anonPostHandler(ctx context.Context, w http.ResponseWriter, r *ht
 			// TODO: send message with all needed confirmations
 			// TODO: persist user
 		}
-		http.Redirect(w, r, n.su.conf.ServerProtocol+n.su.conf.ServerDomain+"/unconfirmed", 303)
+		http.Redirect(w, r, n.u.conf.ServerProtocol+n.u.conf.ServerDomain+"/unconfirmed", 303)
 		return
 	}
 

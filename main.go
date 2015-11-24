@@ -10,7 +10,7 @@ import (
 	"github.com/codemodus/sigmon"
 )
 
-type sysUtils struct {
+type utils struct {
 	conf *conf
 	ds   *dataStores
 	logs *loggers.Loggers
@@ -21,7 +21,7 @@ func main() {
 	sigMon := sigmon.New(nil)
 	sigMon.Run()
 
-	su := &sysUtils{
+	su := &utils{
 		conf: &conf{},
 		ds:   &dataStores{},
 	}
@@ -66,7 +66,7 @@ func main() {
 	su.ts.ParseDir("front/templates")
 
 	cl := newCluster(su)
-	cl.Configure(false)
+	cl.Init()
 	cl.Run()
 	sigMon.Set(cl.signal)
 	cl.Wait()

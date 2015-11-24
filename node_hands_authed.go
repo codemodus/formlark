@@ -31,7 +31,7 @@ func (n *node) authedLoginPostHandler(ctx context.Context, w http.ResponseWriter
 	}
 	usr := r.Form.Get("user")
 	pass := r.Form.Get("pass")
-	if usr == n.su.conf.AdminUser && pass == n.su.conf.AdminPass {
+	if usr == n.u.conf.AdminUser && pass == n.u.conf.AdminPass {
 		s, err := n.sm.SessStart(w, r)
 		if err != nil {
 			// TODO

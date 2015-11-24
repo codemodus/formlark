@@ -19,8 +19,8 @@ func (n *node) newUser() *user {
 	u := &user{
 		User: datatypes.NewUser(),
 		boltItem: &boltItem{
-			BB:  n.su.ds.dcbUsers,
-			BBI: n.su.ds.dcbIndUsers,
+			BB:  n.u.ds.dcbUsers,
+			BBI: n.u.ds.dcbIndUsers,
 		},
 	}
 	return u
@@ -65,8 +65,8 @@ func (n *node) newUsers(count int) *users {
 	u := &users{
 		s: make([]*user, count),
 		BI: &boltItem{
-			BB:  n.su.ds.dcbUsers,
-			BBI: n.su.ds.dcbIndUsers,
+			BB:  n.u.ds.dcbUsers,
+			BBI: n.u.ds.dcbIndUsers,
 		},
 	}
 	return u
@@ -146,7 +146,7 @@ func (n *node) newPosts(i string) *posts {
 	return &posts{
 		S: make([]*post, 0),
 		boltItem: &boltItem{
-			ID: i, BB: n.su.ds.dcbPosts,
+			ID: i, BB: n.u.ds.dcbPosts,
 		},
 	}
 }

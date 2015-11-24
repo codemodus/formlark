@@ -104,7 +104,7 @@ type PageAdmin struct {
 
 func (n *node) newPageAdmin() *PageAdmin {
 	p := newPage()
-	p.URLLogin = "/" + n.su.conf.AdminPathPrefix + "/login"
+	p.URLLogin = "/" + n.u.conf.AdminPathPrefix + "/login"
 	p.NavHeader.ItemsCommon = n.newNavAdminItemsCommon()
 	p.NavDrawer.ItemsCommon = n.newNavAdminItemsCommon()
 	p.Footer.ColsDropdownFlag = true
@@ -116,10 +116,10 @@ func (n *node) newPageAdmin() *PageAdmin {
 func (n *node) newNavAdminItemsCommon() []NavItem {
 	// TODO: Move common items to node field and init within node setup.
 	r := make([]NavItem, 4, 4)
-	r[0] = NavItem{HRef: "/" + n.su.conf.AdminPathPrefix + "/overview", Name: "Overview"}
-	r[1] = NavItem{HRef: "/" + n.su.conf.AdminPathPrefix + "/users", Name: "Users"}
-	r[2] = NavItem{HRef: "/" + n.su.conf.AdminPathPrefix + "/settings", Name: "Settings"}
-	r[3] = NavItem{HRef: "/" + n.su.conf.AdminPathPrefix + "/logout", Name: "Logout"}
+	r[0] = NavItem{HRef: "/" + n.u.conf.AdminPathPrefix + "/overview", Name: "Overview"}
+	r[1] = NavItem{HRef: "/" + n.u.conf.AdminPathPrefix + "/users", Name: "Users"}
+	r[2] = NavItem{HRef: "/" + n.u.conf.AdminPathPrefix + "/settings", Name: "Settings"}
+	r[3] = NavItem{HRef: "/" + n.u.conf.AdminPathPrefix + "/logout", Name: "Logout"}
 	return r
 }
 
@@ -134,7 +134,7 @@ func (n *node) newNavFooterAdminColsDdItemsCommon() []NavGroup {
 
 func (n *node) ExecuteTemplate(w http.ResponseWriter, name string, data interface{}) {
 	b := &bytes.Buffer{}
-	err := n.su.ts.ExecuteTemplate(b, name, data)
+	err := n.u.ts.ExecuteTemplate(b, name, data)
 	if err != nil {
 		// TODO: Log
 		fmt.Println(err)
