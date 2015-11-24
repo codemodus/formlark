@@ -52,7 +52,7 @@ func (cl *cluster) Configure(linkage bool) {
 }
 
 func (n *node) setupMux() *mixmux.TreeMux {
-	c := chain.New(n.reco, n.initReq, n.log, chain.Convert(n.Node.Wedge))
+	c := chain.New(n.reco, n.initReq, n.log)
 	s := c.Append(n.sess)
 	m := mixmux.NewTreeMux()
 
