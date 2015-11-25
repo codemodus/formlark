@@ -14,7 +14,7 @@ type Session struct {
 }
 
 func NewSession(id string, provider Provider) *Session {
-	v := make(map[string]interface{}, 0)
+	v := make(map[string]interface{})
 	return &Session{
 		id:   id,
 		Last: time.Now(),
