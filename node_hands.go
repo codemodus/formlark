@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/boltdb/bolt"
-	"github.com/daved/context"
+	"golang.org/x/net/context"
 )
 
 func (n *node) iconHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
