@@ -52,14 +52,14 @@ func (n *node) log(next chain.Handler) chain.Handler {
 
 func (n *node) sess(next chain.Handler) chain.Handler {
 	return chain.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		s, err := n.sm.SessStart(w, r)
+		s, err := n.sm.StartSession(w, r)
 		if err != nil {
 			fmt.Println("ouch")
 			// TODO
 		}
 
 		if r.URL.Path[len(r.URL.Path)-7:] == "/logout" {
-			n.sm.SessStop(w, r)
+			n.sm.DestroySession(w, r)
 			if r.URL.Path[1:len(n.u.conf.AdminPathPrefix)+1] == n.u.conf.AdminPathPrefix {
 				http.Redirect(w, r, "/"+n.u.conf.AdminPathPrefix+"/login", 302)
 				return

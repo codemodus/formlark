@@ -11,16 +11,16 @@ import (
 )
 
 type Manager struct {
-	name    string
-	maxLife int64
-	prov    Provider
+	name     string
+	maxLife  int64
+	provider Provider
 }
 
-func New(cookieName string, maxLife int64, provider Provider) *Manager {
+func New(name string, maxLife int64, provider Provider) *Manager {
 	return &Manager{
-		name:    cookieName,
-		maxLife: maxLife,
-		prov:    provider,
+		name:     name,
+		maxLife:  maxLife,
+		provider: provider,
 	}
 }
 
@@ -33,12 +33,12 @@ func (m *Manager) genSessID() (string, error) {
 	return base64.URLEncoding.EncodeToString(b), nil
 }
 
-func (m *Manager) SessStart(w http.ResponseWriter, r *http.Request) (s *Session, err error) {
+func (m *Manager) StartSession(w http.ResponseWriter, r *http.Request) (s *Session, err error) {
 	c, err := r.Cookie(m.name)
 	if err == nil {
 		id, err := url.QueryUnescape(c.Value)
 		if err == nil && id != "" {
-			s, err = m.prov.Read(id)
+			s, err = m.provider.Read(id)
 			if err == nil {
 				return s, nil
 			}
@@ -52,7 +52,7 @@ func (m *Manager) SessStart(w http.ResponseWriter, r *http.Request) (s *Session,
 		return nil, err
 	}
 
-	if s, err = m.prov.Create(id); err != nil {
+	if s, err = m.provider.Create(id); err != nil {
 		return nil, err
 	}
 
@@ -68,7 +68,7 @@ func (m *Manager) SessStart(w http.ResponseWriter, r *http.Request) (s *Session,
 	return s, nil
 }
 
-func (m *Manager) SessStop(w http.ResponseWriter, r *http.Request) {
+func (m *Manager) DestroySession(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie(m.name)
 	if err != nil {
 		return
@@ -80,7 +80,7 @@ func (m *Manager) SessStop(w http.ResponseWriter, r *http.Request) {
 	if err != nil || id == "" {
 		return
 	}
-	m.prov.Destroy(id)
+	m.provider.Destroy(id)
 }
 
 func unsetCookie(w http.ResponseWriter, name string) {
