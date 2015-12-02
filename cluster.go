@@ -3,8 +3,8 @@ package main
 import (
 	"time"
 
-	"github.com/codemodus/formlark/internal/sessmgr"
 	"github.com/codemodus/httpcluster"
+	"github.com/codemodus/sessctrl"
 	"github.com/codemodus/sigmon"
 )
 
@@ -20,11 +20,11 @@ func newCluster(u *utils) *cluster {
 }
 
 func (cl *cluster) Init() {
-	p := sessmgr.NewVolatileProvider()
-	sm := sessmgr.New("cook-e", 90, p)
+	p := sessctrl.NewVolatileProvider()
+	sc := sessctrl.NewCookieController("cook-e", 90, p)
 
 	n := &node{
-		u: cl.u, sm: sm,
+		u: cl.u, sc: sc,
 		Node: &httpcluster.Node{
 			Timeout: time.Second * 5, Addr: cl.u.conf.ServerPort,
 		},

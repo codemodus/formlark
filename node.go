@@ -9,16 +9,16 @@ import (
 	"time"
 
 	"github.com/codemodus/chain"
-	"github.com/codemodus/formlark/internal/sessmgr"
 	"github.com/codemodus/httpcluster"
 	"github.com/codemodus/mixmux"
 	"github.com/codemodus/parth"
+	"github.com/codemodus/sessctrl"
 )
 
 type node struct {
 	*httpcluster.Node
 	u  *utils
-	sm *sessmgr.Manager
+	sc *sessctrl.CookieController
 }
 
 func (n *node) setupMux() *mixmux.TreeMux {

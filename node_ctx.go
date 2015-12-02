@@ -3,7 +3,7 @@ package main
 import (
 	"time"
 
-	"github.com/codemodus/formlark/internal/sessmgr"
+	"github.com/codemodus/sessctrl"
 	"golang.org/x/net/context"
 )
 
@@ -33,11 +33,11 @@ func (n *node) GetReqStart(ctx context.Context) (time.Time, bool) {
 	return t, ok
 }
 
-func (n *node) SetSess(ctx context.Context, s *sessmgr.Session) context.Context {
+func (n *node) SetSess(ctx context.Context, s *sessctrl.Session) context.Context {
 	return context.WithValue(ctx, nodeCtxKeySess, s)
 }
 
-func (n *node) GetSess(ctx context.Context) (*sessmgr.Session, bool) {
-	s, ok := ctx.Value(nodeCtxKeySess).(*sessmgr.Session)
+func (n *node) GetSess(ctx context.Context) (*sessctrl.Session, bool) {
+	s, ok := ctx.Value(nodeCtxKeySess).(*sessctrl.Session)
 	return s, ok
 }

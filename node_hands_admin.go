@@ -10,14 +10,14 @@ import (
 )
 
 func (n *node) adminLoginGetHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	s, err := n.sm.StartSession(w, r)
-	if err != nil {
-		//
-	}
-	usr, ok := s.Get("user").(string)
-	if ok && usr != "" {
-		http.Redirect(w, r, "/"+n.u.conf.AdminPathPrefix, 302)
-		return
+	s, err := n.sc.Continue(w, r)
+	if err == nil {
+		defer s.Flush()
+		usr, ok := s.Get("user").(string)
+		if ok && usr != "" {
+			http.Redirect(w, r, "/"+n.u.conf.AdminPathPrefix, 302)
+			return
+		}
 	}
 
 	d := n.newPageAuthed()
@@ -35,10 +35,13 @@ func (n *node) adminLoginPostHandler(ctx context.Context, w http.ResponseWriter,
 	usr := r.Form.Get("user")
 	pass := r.Form.Get("pass")
 	if usr == n.u.conf.AdminUser && pass == n.u.conf.AdminPass {
-		s, err := n.sm.StartSession(w, r)
+		s, err := n.sc.Start(w, r)
 		if err != nil {
 			// TODO
+			fmt.Println(err)
 		}
+		defer s.Flush()
+
 		s.Set("user", usr)
 		s.Set("test", time.Now().Unix())
 
@@ -61,6 +64,7 @@ func (n *node) adminOverviewHandler(ctx context.Context, w http.ResponseWriter, 
 		http.Error(w, "session not found in context", 500)
 		return
 	}
+
 	usr, ok := s.Get("user").(string)
 	if !ok {
 		http.Error(w, "bad session var", 500)
@@ -80,7 +84,7 @@ func (n *node) adminOverviewHandler(ctx context.Context, w http.ResponseWriter, 
 	if err := usrs.get(0); err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(usrs)
+	fmt.Println("usrs", usrs)
 
 	d.PageTitle = "Overview"
 	n.ExecuteTemplate(w, "admin", d)
