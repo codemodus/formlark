@@ -2,8 +2,12 @@ package main
 
 import (
 	"flag"
+	"os"
 	"time"
 
+	"github.com/codemodus/formlark/internal/api"
+	"github.com/codemodus/formlark/internal/dommux"
+	"github.com/codemodus/formlark/internal/front"
 	"github.com/codemodus/sigmon"
 	"github.com/codemodus/vitals"
 	"github.com/sirupsen/logrus"
@@ -13,6 +17,7 @@ type scopes struct {
 	sm  string
 	cnf string
 	prf string
+	srv string
 }
 
 func (s *scopes) String() string {
@@ -20,6 +25,7 @@ func (s *scopes) String() string {
 }
 
 func main() {
+	http := ":54541"
 	profCPU := ""
 	var statsCyc time.Duration
 	profMem := ""
@@ -38,6 +44,10 @@ func main() {
 	sm.Run()
 	log.Infof("%s: running", scp.sm)
 
+	flag.StringVar(
+		&http, "http", http,
+		"port to listen on for http requests",
+	)
 	flag.StringVar(
 		&profCPU, "prof-cpu", profCPU,
 		"location to dump CPU profile",
@@ -73,14 +83,21 @@ func main() {
 		}
 	}()
 
-	// TODO: init
+	h, err := dommux.New(
+		dommux.WithDomainHandler("www.formlark.localhost", &front.Front{}),
+		dommux.WithDomainHandler("api.formlark.localhost", &api.API{}),
+	)
+	if err != nil {
+		log.Fatalf("%s: failed to initialize: %s", scp.srv, err)
+	}
 
 	sm.Set(func(ssm *sigmon.SignalMonitor) {
-		// TODO: sigs
+		os.Exit(0)
 	})
 
-	// TODO: run
-	time.Sleep(time.Second * 18)
+	if err := h.Serve(http); err != nil {
+		log.Errorf("%s: failed on serve: %s", scp.srv, err)
+	}
 
 	if profMem != "" {
 		log.Infof("%s: heap > %q", scp.prf, profMem)
