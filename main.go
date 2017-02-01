@@ -83,9 +83,19 @@ func main() {
 		}
 	}()
 
+	f, err := front.New()
+	if err != nil {
+		log.Fatalf("%s: failed to initialize front handler: %s", scp.srv, err)
+	}
+
+	a, err := api.New()
+	if err != nil {
+		log.Fatalf("%s: failed to initialize api handler: %s", scp.srv, err)
+	}
+
 	h, err := dommux.New(
-		dommux.WithDomainHandler("www.formlark.localhost", &front.Front{}),
-		dommux.WithDomainHandler("api.formlark.localhost", &api.API{}),
+		dommux.WithDomainHandler("www.formlark.localhost", f),
+		dommux.WithDomainHandler("api.formlark.localhost", a),
 	)
 	if err != nil {
 		log.Fatalf("%s: failed to initialize: %s", scp.srv, err)
