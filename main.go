@@ -107,7 +107,9 @@ func main() {
 
 	h, err := dommux.New(
 		dommux.WithDomainHandler("www.formlark.localhost", f),
+		dommux.WithDomainHandler("www.formlark.localhost"+http, f),
 		dommux.WithDomainHandler("api.formlark.localhost", a),
+		dommux.WithDomainHandler("api.formlark.localhost"+http, a),
 	)
 	if err != nil {
 		log.Fatalf("%s: failed to initialize: %s", scp.srv, err)
