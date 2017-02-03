@@ -31,6 +31,7 @@ func main() {
 	profCPU := ""
 	var statsCyc time.Duration
 	profMem := ""
+	frontFS := false
 
 	log := logrus.New()
 	scp := scopes{
@@ -52,6 +53,8 @@ func main() {
 		&http, "http", http,
 		"port to listen on for http requests",
 	)
+	flag.BoolVar(&frontFS, "front-fs", frontFS,
+		"run front using non-embedded assets")
 	flag.StringVar(
 		&profCPU, "prof-cpu", profCPU,
 		"location to dump CPU profile",
@@ -93,7 +96,12 @@ func main() {
 	}
 	log.Infof("%s: in-memory data provider initialized", scp.dp)
 
-	f, err := front.New()
+	fOpts := []front.Option{}
+	if frontFS {
+		fOpts = append(fOpts, front.WithFileSystemAssets())
+		log.Infof("%s: front will use non-embedded assets", scp.srv)
+	}
+	f, err := front.New(fOpts...)
 	if err != nil {
 		log.Fatalf("%s: failed to initialize front handler: %s", scp.srv, err)
 	}
