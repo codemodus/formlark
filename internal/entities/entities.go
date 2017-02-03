@@ -22,7 +22,6 @@ type User struct {
 	Email string
 
 	ConfirmedAt NullTime `json:"omitempty"`
-	Token       string   `json:"omitempty"`
 }
 
 // UserRecord ...
@@ -39,7 +38,6 @@ type UserRequiz struct {
 // UserReferral ...
 type UserReferral struct {
 	Email string
-	Token string
 }
 
 // Message ...

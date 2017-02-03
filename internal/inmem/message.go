@@ -1,6 +1,7 @@
 package inmem
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -8,7 +9,7 @@ import (
 )
 
 // InsMessageByUserID ...
-func (i *InMem) InsMessageByUserID(mr *entities.MessageByUserIDRecord) (*entities.Message, error) {
+func (i *InMem) InsMessageByUserID(ctx context.Context, mr *entities.MessageByUserIDRecord) (*entities.Message, error) {
 	u, ok := i.users[mr.UserID]
 	if !ok {
 		return nil, fmt.Errorf("no user by id to rcv msg")

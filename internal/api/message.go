@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/codemodus/formlark/internal/entities"
@@ -9,7 +10,7 @@ import (
 
 // MessageProvider ...
 type MessageProvider interface {
-	InsMessageByUserID(*entities.MessageByUserIDRecord) (*entities.Message, error)
+	InsMessageByUserID(context.Context, *entities.MessageByUserIDRecord) (*entities.Message, error)
 }
 
 func (a *API) messageByUserPostHandler(w http.ResponseWriter, r *http.Request) {
@@ -27,7 +28,7 @@ func (a *API) messageByUserPostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	mr.UserID = uint64(uid)
 
-	m, err := a.msgP.InsMessageByUserID(mr)
+	m, err := a.msgP.InsMessageByUserID(r.Context(), mr)
 	if err != nil {
 		panic(err)
 	}

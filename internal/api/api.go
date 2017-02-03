@@ -35,12 +35,11 @@ func New(dp DataProvider) (*API, error) {
 func (a *API) setMux() {
 	m := mixmux.NewTreeMux(nil)
 
-	c := chain.New(a.reco)
-	s := c.Append(a.auth)
+	c := chain.New(a.reco, a.authCtx)
 
-	m.Get("/user", s.EndFn(a.userGetSearchHandler))
+	m.Get("/user", c.EndFn(a.userGetSearchHandler))
 	m.OptionsHeaders("/user")
-	m.Post("/claim/user", s.EndFn(a.userClaimPostHandler))
+	m.Post("/claim/user", c.EndFn(a.userClaimPostHandler))
 	m.OptionsHeaders("/claim/user")
 
 	m.Post("/user/:id/message", c.EndFn(a.messageByUserPostHandler))

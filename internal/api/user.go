@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/codemodus/formlark/internal/entities"
@@ -8,8 +9,8 @@ import (
 
 // UserProvider ...
 type UserProvider interface {
-	InsUserClaim(*entities.UserRequiz) (*entities.Empty, error)
-	SrchUser(*entities.UserReferral) (*entities.User, error)
+	InsUserClaim(context.Context, *entities.UserRequiz) (*entities.Empty, error)
+	SrchUser(context.Context, *entities.UserReferral) (*entities.User, error)
 }
 
 func (a *API) userClaimPostHandler(w http.ResponseWriter, r *http.Request) {
@@ -20,7 +21,7 @@ func (a *API) userClaimPostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	e, err := a.userP.InsUserClaim(ur)
+	e, err := a.userP.InsUserClaim(r.Context(), ur)
 	if err != nil {
 		panic(err)
 	}
@@ -34,12 +35,12 @@ func (a *API) userClaimPostHandler(w http.ResponseWriter, r *http.Request) {
 func (a *API) userGetSearchHandler(w http.ResponseWriter, r *http.Request) {
 	ur := &entities.UserReferral{
 		Email: r.URL.Query().Get("email"),
-		Token: r.URL.Query().Get("token"),
 	}
 
-	u, err := a.userP.SrchUser(ur)
+	u, err := a.userP.SrchUser(r.Context(), ur)
 	if err != nil {
-		panic(err)
+		httpError(w, http.StatusNotFound)
+		return
 	}
 
 	if err = encodeBody(w, u); err != nil {
