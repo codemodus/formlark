@@ -11,29 +11,6 @@ type NullTime struct {
 	Time  time.Time
 }
 
-// MarshalJSON ...
-func (n *NullTime) MarshalJSON() ([]byte, error) {
-	return []byte(n.Time.Format(`"2006-01-02T15:04:05Z"`)), nil
-}
-
-// UnmarshalJSON ...
-func (n *NullTime) UnmarshalJSON(data []byte) (err error) {
-	t, err := time.Parse("\"2006-01-02T15:04:05Z\"", string(data))
-	if err != nil {
-		return err
-	}
-
-	n.Time = t
-	n.Valid = true
-
-	return nil
-}
-
-// IsZero ...
-func (n *NullTime) IsZero() bool {
-	return !n.Valid
-}
-
 // User ...
 type User struct {
 	ID        uint64
@@ -86,4 +63,27 @@ type MessageRecord struct {
 type MessageByUserIDRecord struct {
 	UserID  uint64
 	Message MessageRecord
+}
+
+// MarshalJSON ...
+func (n *NullTime) MarshalJSON() ([]byte, error) {
+	return []byte(n.Time.Format(`"2006-01-02T15:04:05Z"`)), nil
+}
+
+// UnmarshalJSON ...
+func (n *NullTime) UnmarshalJSON(data []byte) (err error) {
+	t, err := time.Parse("\"2006-01-02T15:04:05Z\"", string(data))
+	if err != nil {
+		return err
+	}
+
+	n.Time = t
+	n.Valid = true
+
+	return nil
+}
+
+// IsZero ...
+func (n *NullTime) IsZero() bool {
+	return !n.Valid
 }
