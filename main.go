@@ -8,6 +8,7 @@ import (
 	"github.com/codemodus/formlark/internal/api"
 	"github.com/codemodus/formlark/internal/dommux"
 	"github.com/codemodus/formlark/internal/front"
+	"github.com/codemodus/formlark/internal/inmem"
 	"github.com/codemodus/sigmon"
 	"github.com/codemodus/vitals"
 	"github.com/sirupsen/logrus"
@@ -17,6 +18,7 @@ type scopes struct {
 	sm  string
 	cnf string
 	prf string
+	dp  string
 	srv string
 }
 
@@ -35,6 +37,8 @@ func main() {
 		sm:  "sigmon",
 		cnf: "conf",
 		prf: "prof",
+		dp:  "datap",
+		srv: "srv",
 	}
 
 	sm := sigmon.New(nil)
@@ -83,15 +87,23 @@ func main() {
 		}
 	}()
 
+	dp, err := inmem.New()
+	if err != nil {
+		log.Fatalf("%s: failed to initialize data provider: %s", scp.dp, err)
+	}
+	log.Infof("%s: in-memory data provider initialized", scp.dp)
+
 	f, err := front.New()
 	if err != nil {
 		log.Fatalf("%s: failed to initialize front handler: %s", scp.srv, err)
 	}
+	log.Infof("%s: front initialized", scp.srv)
 
-	a, err := api.New()
+	a, err := api.New(dp)
 	if err != nil {
 		log.Fatalf("%s: failed to initialize api handler: %s", scp.srv, err)
 	}
+	log.Infof("%s: api initialized", scp.srv)
 
 	h, err := dommux.New(
 		dommux.WithDomainHandler("www.formlark.localhost", f),
@@ -100,10 +112,15 @@ func main() {
 	if err != nil {
 		log.Fatalf("%s: failed to initialize: %s", scp.srv, err)
 	}
+	log.Infof("%s: domain multiplexer initialized", scp.srv)
 
 	sm.Set(func(ssm *sigmon.SignalMonitor) {
 		os.Exit(0)
 	})
+	log.Infof("%s: set (exit on all)", scp.sm)
+
+	log.Infof("%s: listening on %s for the domain %s", scp.srv, http, "www.formlark.localhost")
+	log.Infof("%s: listening on %s for the domain %s", scp.srv, http, "api.formlark.localhost")
 
 	if err := h.Serve(http); err != nil {
 		log.Errorf("%s: failed on serve: %s", scp.srv, err)
