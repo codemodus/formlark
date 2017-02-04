@@ -8,7 +8,7 @@ import (
 )
 
 // DataProvider ...
-type DataProvider interface {
+type dataProvider interface {
 	UserProvider
 	MessageProvider
 }
@@ -21,7 +21,7 @@ type API struct {
 }
 
 // New ...
-func New(dp DataProvider) (*API, error) {
+func New(dp dataProvider) (*API, error) {
 	a := &API{
 		userP: dp,
 		msgP:  dp,

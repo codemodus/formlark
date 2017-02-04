@@ -13,54 +13,54 @@ type NullTime struct {
 
 // User ...
 type User struct {
-	ID        uint64
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt NullTime `json:"omitempty"`
-	BlockedAt NullTime `json:"omitempty"`
+	ID        uint64    `json:"id,omitempty"`
+	CreatedAt time.Time `json:"createdAt,omitempty"`
+	UpdatedAt time.Time `json:"updateAt,omitempty"`
+	DeletedAt NullTime  `json:"deletedAt,omitempty"`
+	BlockedAt NullTime  `json:"blockedAt,omitempty"`
 
-	Email string
+	Email string `json:"email,omitempty"`
 
-	ConfirmedAt NullTime `json:"omitempty"`
+	ConfirmedAt NullTime `json:"confirmedAt,omitempty"`
 }
 
 // UserRecord ...
 type UserRecord struct {
-	Email string
+	Email string `json:"email,omitempty"`
 }
 
 // UserRequiz ...
 type UserRequiz struct {
-	URL  string
-	User UserRecord
+	URL        string     `json:"url,omitempty"`
+	UserRecord UserRecord `json:"user,omitempty"`
 }
 
 // UserReferral ...
 type UserReferral struct {
-	Email string
+	Email string `json:"email,omitempty"`
 }
 
 // Message ...
 type Message struct {
-	ID        uint64
-	CreatedAt time.Time
+	ID        uint64    `json:"id,omitempty"`
+	CreatedAt time.Time `json:"createdAt,omitempty"`
 
-	UserID uint64 `json:"omitempty"`
+	UserID uint64 `json:"userID,omitempty"`
 
-	ReplyTo string            `json:"omitempty"`
-	Subject string            `json:"omitempty"`
-	Form    map[string]string `json:"omitempty"`
+	ReplyTo string            `json:"replyTo,omitempty"`
+	Subject string            `json:"subject,omitempty"`
+	Form    map[string]string `json:"form,omitempty"`
 }
 
 // MessageRecord ...
 type MessageRecord struct {
-	Form map[string]string
+	Form map[string]string `json:"form,omitempty"`
 }
 
 // MessageByUserIDRecord ...
 type MessageByUserIDRecord struct {
-	UserID  uint64
-	Message MessageRecord
+	UserID  uint64        `json:"userID,omitempty"`
+	Message MessageRecord `json:"message,omitempty"`
 }
 
 // MarshalJSON ...

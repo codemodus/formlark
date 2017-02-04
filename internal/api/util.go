@@ -2,8 +2,11 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/codemodus/formlark/internal/httperr"
 )
 
 func closeBody(r *http.Request) {
@@ -32,6 +35,7 @@ func encodeBody(w io.Writer, i interface{}) error {
 	return nil
 }
 
-func httpError(w http.ResponseWriter, status int) {
-	http.Error(w, http.StatusText(status), status)
+func errorHandler(w http.ResponseWriter, err httperr.HTTPError) {
+	fmt.Println(err.Err())
+	http.Error(w, http.StatusText(err.Status())+": "+err.Error(), err.Status())
 }

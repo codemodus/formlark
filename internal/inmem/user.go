@@ -3,34 +3,35 @@ package inmem
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/codemodus/formlark/internal/cx"
 	"github.com/codemodus/formlark/internal/entities"
+	"github.com/codemodus/formlark/internal/httperr"
 )
 
 // InsUserClaim ...
-func (i *InMem) InsUserClaim(ctx context.Context, ur *entities.UserRequiz) (*entities.Empty, error) {
+func (i *InMem) InsUserClaim(ctx context.Context, ur *entities.UserRequiz) (*entities.Empty, httperr.HTTPError) {
 	for _, v := range i.users {
-		if v.Email == ur.User.Email {
-			return nil, fmt.Errorf("user exists")
+		if v.Email == ur.UserRecord.Email {
+			return nil, httperr.New(nil, http.StatusConflict, "user exists")
 		}
 	}
 
 	t := time.Now()
-
 	cu := &claimedUser{
 		Token:        i.idg.Gen(),
 		ExpirationAt: time.Now().Add(time.Minute * 2),
 		User: &entities.User{
 			ID:        i.idg.Gen(),
-			Email:     ur.User.Email,
+			Email:     ur.UserRecord.Email,
 			CreatedAt: t,
 			UpdatedAt: t,
 		},
 	}
 
-	fmt.Println(cu.Token, cu.User.Email)
+	fmt.Printf("ADDED TEMP-AUTHORIZATION TOKEN: %d FOR EMAIL: %s\n", cu.Token, cu.User.Email)
 
 	i.claimedUsers[cu.User.ID] = cu
 
@@ -38,7 +39,7 @@ func (i *InMem) InsUserClaim(ctx context.Context, ur *entities.UserRequiz) (*ent
 }
 
 // SrchUser ...
-func (i *InMem) SrchUser(ctx context.Context, ur *entities.UserReferral) (*entities.User, error) {
+func (i *InMem) SrchUser(ctx context.Context, ur *entities.UserReferral) (*entities.User, httperr.HTTPError) {
 	var u *entities.User
 
 	t, ok := cx.HTTPTempAuth(ctx)
@@ -48,7 +49,7 @@ func (i *InMem) SrchUser(ctx context.Context, ur *entities.UserReferral) (*entit
 
 	a, ok := cx.HTTPAuth(ctx)
 	if !ok || !i.isValidAuth(a) {
-		return nil, fmt.Errorf("not authorized")
+		return nil, httperr.New(nil, http.StatusUnauthorized, "not authorized")
 	}
 
 	for _, v := range i.users {
@@ -57,14 +58,14 @@ func (i *InMem) SrchUser(ctx context.Context, ur *entities.UserReferral) (*entit
 		}
 	}
 
-	if u == nil {
-		return nil, fmt.Errorf("no user found")
+	if u != nil {
+		return u, nil
 	}
 
-	return u, nil
+	return &entities.User{}, nil
 }
 
-func (i *InMem) srchUserClaim(token uint64, ur *entities.UserReferral) (*entities.User, error) {
+func (i *InMem) srchUserClaim(token uint64, ur *entities.UserReferral) (*entities.User, httperr.HTTPError) {
 	var cu *claimedUser
 
 	for _, v := range i.claimedUsers {
@@ -74,15 +75,15 @@ func (i *InMem) srchUserClaim(token uint64, ur *entities.UserReferral) (*entitie
 	}
 
 	if cu == nil {
-		return nil, nil
+		return &entities.User{}, nil
 	}
 
 	if token == 0 || cu.Token != token {
-		return nil, fmt.Errorf("bad token")
+		return nil, httperr.New(nil, http.StatusUnauthorized, "bad token")
 	}
 
 	if cu.ExpirationAt.Before(time.Now()) {
-		return nil, fmt.Errorf("expired token")
+		return nil, httperr.New(nil, http.StatusUnauthorized, "expired token")
 	}
 
 	cu.User.ConfirmedAt.Time = time.Now()

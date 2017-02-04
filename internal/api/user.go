@@ -5,29 +5,31 @@ import (
 	"net/http"
 
 	"github.com/codemodus/formlark/internal/entities"
+	"github.com/codemodus/formlark/internal/httperr"
 )
 
 // UserProvider ...
 type UserProvider interface {
-	InsUserClaim(context.Context, *entities.UserRequiz) (*entities.Empty, error)
-	SrchUser(context.Context, *entities.UserReferral) (*entities.User, error)
+	InsUserClaim(context.Context, *entities.UserRequiz) (*entities.Empty, httperr.HTTPError)
+	SrchUser(context.Context, *entities.UserReferral) (*entities.User, httperr.HTTPError)
 }
 
 func (a *API) userClaimPostHandler(w http.ResponseWriter, r *http.Request) {
 	ur := &entities.UserRequiz{}
 
 	if err := decodeBody(r, ur); err != nil {
-		httpError(w, http.StatusBadRequest)
+		errorHandler(w, httperr.New(err, http.StatusBadRequest, ""))
 		return
 	}
 
-	e, err := a.userP.InsUserClaim(r.Context(), ur)
-	if err != nil {
-		panic(err)
+	e, herr := a.userP.InsUserClaim(r.Context(), ur)
+	if herr != nil {
+		errorHandler(w, herr)
+		return
 	}
 
-	if err = encodeBody(w, e); err != nil {
-		httpError(w, http.StatusInternalServerError)
+	if err := encodeBody(w, e); err != nil {
+		errorHandler(w, httperr.New(err, http.StatusInternalServerError, ""))
 		return
 	}
 }
@@ -37,14 +39,14 @@ func (a *API) userGetSearchHandler(w http.ResponseWriter, r *http.Request) {
 		Email: r.URL.Query().Get("email"),
 	}
 
-	u, err := a.userP.SrchUser(r.Context(), ur)
-	if err != nil {
-		httpError(w, http.StatusNotFound)
+	u, herr := a.userP.SrchUser(r.Context(), ur)
+	if herr != nil {
+		errorHandler(w, herr)
 		return
 	}
 
-	if err = encodeBody(w, u); err != nil {
-		httpError(w, http.StatusInternalServerError)
+	if err := encodeBody(w, u); err != nil {
+		errorHandler(w, httperr.New(err, http.StatusInternalServerError, ""))
 		return
 	}
 }

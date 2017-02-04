@@ -32,8 +32,7 @@ func New() (*InMem, error) {
 	}
 
 	testAuth := im.idg.Gen()
-	fmt.Printf("adding auth %d\n", testAuth)
-
+	fmt.Printf("ADDING TEST AUTHORIZATION TOKEN: %d\n", testAuth)
 	im.auths[testAuth] = struct{}{}
 
 	return im, nil

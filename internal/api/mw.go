@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/codemodus/formlark/internal/cx"
+	"github.com/codemodus/formlark/internal/httperr"
 )
 
 func (a *API) reco(next http.Handler) http.Handler {
@@ -28,7 +29,8 @@ func (a *API) authCtx(next http.Handler) http.Handler {
 		if auth != "" {
 			a, err := strconv.ParseUint(auth, 10, 64)
 			if err != nil {
-				httpError(w, http.StatusBadRequest)
+				errorHandler(w, httperr.New(err, http.StatusBadRequest, ""))
+				return
 			}
 
 			cx.ReqSetHTTPAuth(r, a)
@@ -38,7 +40,8 @@ func (a *API) authCtx(next http.Handler) http.Handler {
 		if tAuth != "" {
 			ta, err := strconv.ParseUint(tAuth, 10, 64)
 			if err != nil {
-				httpError(w, http.StatusBadRequest)
+				errorHandler(w, httperr.New(err, http.StatusBadRequest, ""))
+				return
 			}
 
 			cx.ReqSetHTTPTempAuth(r, ta)
